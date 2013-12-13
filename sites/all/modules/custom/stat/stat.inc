@@ -69,7 +69,7 @@ function stat_stat_content_type () {
 function stat_create_stat_content_type () {
   module_load_include ('inc', 'stat', 'stat.field');
 
-  $type = mhealthdb_contributed_content_type ();
+  $type = stat_stat_content_type ();
   node_type_save ($type);
 
   stat_create_textfield        ($type, 'stat_value',   t ('Value'));
