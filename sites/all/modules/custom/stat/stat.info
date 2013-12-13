@@ -1,0 +1,7 @@
+name = Stat
+description = "Defines the Stat content type and the Units vocabulary."
+core = 7.x
+files[] = stat.field.inc
+files[] = stat.inc
+files[] = stat.install
+files[] = stat.module
