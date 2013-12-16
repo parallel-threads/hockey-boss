@@ -92,8 +92,11 @@ function stat_create_textfield ($type, $name, $label) {
   @param $label (string) the field label.
   @param $machineName (string) the vocabulary
     machine name.
+  @param $cardinality (int) the default
+    cardinality. Default
+    FIELD_CARDINALITY_UNLIMITED.
 */
-function stat_create_term_reference ($type, $name, $label, $machineName) {
+function stat_create_term_reference ($type, $name, $label, $machineName, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
   $field = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
@@ -101,7 +104,7 @@ function stat_create_term_reference ($type, $name, $label, $machineName) {
       'field_name'   => $name,
       'type'         => 'taxonomy_term_reference',
       'entity_types' => array ('node'),
-      'cardinality'  => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality'  => $cardinality,
       'settings'     => array (
         'allowed_values' => array (
           array ('vocabulary' => $machineName,
@@ -146,8 +149,11 @@ function stat_create_term_reference ($type, $name, $label, $machineName) {
   @param $name (string) the field name.
   @param $label (string) the field label.
   @param $target_types (array) the target types.
+  @param $cardinality (int) the default
+    cardinality. Default
+    FIELD_CARDINALITY_UNLIMITED.
 */
-function stat_create_entity_reference ($type, $name, $label, $target_types) {
+function stat_create_entity_reference ($type, $name, $label, $target_types, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
   $field = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
@@ -155,7 +161,7 @@ function stat_create_entity_reference ($type, $name, $label, $target_types) {
       'field_name'   => $name,
       'type'         => 'entityreference',
       'entity_types' => array ('node'),
-      'cardinality'  => FIELD_CARDINALITY_UNLIMITED,
+      'cardinality'  => $cardinality,
       'settings'     => array (
         'handler_settings' => array (
           'target_bundles' => $target_types,
