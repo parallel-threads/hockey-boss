@@ -1,0 +1,7 @@
+<?php
+/**
+  @file
+  @brief The Hockey Boss Stat module creates the
+    Stat content types used by the Hockey Boss
+    site.
+*/
