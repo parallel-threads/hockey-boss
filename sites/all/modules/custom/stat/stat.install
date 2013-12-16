@@ -1,13 +1,13 @@
 <?php
 /**
   @file
-  @brief Creates/Deletes the Stat content type and Unit vocabulary.
+  @brief Creates/Deletes the Stat Unit vocabulary.
 */
 
 /**
   @brief Implements hook_install ().
   @details
-    Creates the Stat content type and Unit vocabulary.
+    Creates the Unit vocabulary.
 */
 function stat_install () {
   module_load_include ('inc', 'stat');
@@ -15,14 +15,6 @@ function stat_install () {
   // I. Create the core vocabularies.
   stat_create_vocabularies ();
   drupal_set_message ('Created/Updated the Unit vocabulary.');
-
-  // II. Create the Stat content type. 
-  stat_create_stat_content_type ();
-  drupal_set_message ('Created/Updated the Stat content type.');
-
-  // III. Grant permissions.
-  stat_set_permissions ();
-  drupal_set_message ('Updated user permissions.');
 }
 
 /**
@@ -33,11 +25,6 @@ function stat_install () {
 */
 function stat_uninstall () {
   module_load_include ('inc', 'stat');
-
-  // I. Delete the Stat content type.
-  stat_delete_stat_nodes ();
-  node_type_delete (stat_STAT_TYPE);
-  drupal_set_message ('Deleted the Stat content type');
 
   // II. Delete the core vocabularies.
   stat_delete_vocabularies ();
