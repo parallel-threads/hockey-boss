@@ -40,7 +40,7 @@ function hockey_boss_stat_get_stat_types () {
 */
 function hockey_boss_stat_create_pgs_fields ($type) {
   module_load_include ('inc', 'stat', 'stat.field');
-  stat_create_entity_reference ($type, $type->type . '_game', t ('Game'), 1);
+  simple_field_create_entity_reference ($type, $type->type . '_game', t ('Game'), 1);
 }
 
 /// Creates the stat types defined by this module.

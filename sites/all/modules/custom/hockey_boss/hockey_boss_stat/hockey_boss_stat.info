@@ -2,6 +2,7 @@ name = Hockey Boss Stat
 description = "Defines the Stat content types on the Hockey Boss site."
 core = 7.x
 package = HockeyBoss
+dependencies[] = simple_field
 dependencies[] = stat
 files[] = hockey_boss_stat.inc
 files[] = hockey_boss_stat.install

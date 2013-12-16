@@ -76,17 +76,15 @@ function stat_get_stat_type ($machine_name, $name, $description) {
   @param $description (string) a description of the stat type.
 */
 function stat_create_stat_type ($machine_name, $name, $description) {
-  module_load_include ('inc', 'stat', 'stat.field');
-
   // I. Create the content type.
   $type = stat_get_stat_type ($machine_name, $name, $description);
   node_type_save ($type);
 
   // II. Create core fields.
-  stat_create_textfield        ($type, $machine_name . '_value',   t ('Value'));
-  stat_create_term_reference   ($type, $machine_name . '_unit',    t ('Units'),   array ('stat_unit'), 1);
-  stat_create_entity_reference ($type, $machine_name . '_subject', t ('Subject'), array ('node'), 1);
-  stat_create_date_field       ($type, $machine_name . '_date',    t ('Date'));
+  simple_field_create_textfield        ($type, $machine_name . '_value',   t ('Value'));
+  simple_field_create_term_reference   ($type, $machine_name . '_unit',    t ('Units'),   array ('stat_unit'), 1);
+  simple_field_create_entity_reference ($type, $machine_name . '_subject', t ('Subject'), array ('node'), 1);
+  simple_field_create_date_field       ($type, $machine_name . '_date',    t ('Date'));
 
   // III. Return the type definition.
   return $type;
