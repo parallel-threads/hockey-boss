@@ -1,8 +1,8 @@
 <?php
 /**
   @file
-  @brief Defines a set of functions that simplify
-    the definition of content type fields.
+  @brief The Simple Field module defines a simple
+    API for creating common field types.
 */
 
 /**
@@ -11,7 +11,7 @@
   @param $name (string) the field name.
   @param $label (string) the field label.
 */
-function stat_create_textarea ($type, $name, $label) {
+function simple_field_create_textarea ($type, $name, $label) {
   $field = field_info_field($name);
   $instance = field_info_instance('node', $name, $type->type);
   if (empty($field)) {
@@ -51,7 +51,7 @@ function stat_create_textarea ($type, $name, $label) {
   @param $name (string) the field name.
   @param $label (string) the field label.
 */
-function stat_create_textfield ($type, $name, $label) {
+function simple_field_create_textfield ($type, $name, $label) {
   $field = field_info_field($name);
   $instance = field_info_instance('node', $name, $type->type);
   if (empty($field)) {
@@ -96,7 +96,7 @@ function stat_create_textfield ($type, $name, $label) {
     cardinality. Default
     FIELD_CARDINALITY_UNLIMITED.
 */
-function stat_create_term_reference ($type, $name, $label, $machineName, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
+function simple_field_create_term_reference ($type, $name, $label, $machineName, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
   $field = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
@@ -153,7 +153,7 @@ function stat_create_term_reference ($type, $name, $label, $machineName, $cardin
     cardinality. Default
     FIELD_CARDINALITY_UNLIMITED.
 */
-function stat_create_entity_reference ($type, $name, $label, $target_types, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
+function simple_field_create_entity_reference ($type, $name, $label, $target_types, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
   $field = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
@@ -192,7 +192,7 @@ function stat_create_entity_reference ($type, $name, $label, $target_types, $car
   @param $name (string) the field name.
   @param $label (string) the field label.
 */
-function stat_create_date_field ($type, $name, $label) {
+function simple_field_create_date_field ($type, $name, $label) {
   $field = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
@@ -238,7 +238,7 @@ function stat_create_date_field ($type, $name, $label) {
   @param $id (integer) the entity id.
   @return (array) the field value.
 */
-function stat_create_entity_reference_value ($id) {
+function simple_field_create_entity_reference_value ($id) {
   return array ('target_id' => $id);
 }
 
@@ -249,7 +249,7 @@ function stat_create_entity_reference_value ($id) {
   @param $day (int) the day.
   @return (array) the field value.
 */
-function stat_create_date_field_value ($year, $month, $day) {
+function simple_field_create_date_field_value ($year, $month, $day) {
   return array (
     'value' => sprintf ('%04d-%02d-%02dT12:00:00', $year, $month, $day),
     'date_type' => 'date'
