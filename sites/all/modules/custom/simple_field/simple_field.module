@@ -12,7 +12,7 @@
   @param $label (string) the field label.
 */
 function simple_field_create_textarea ($type, $name, $label) {
-  $field = field_info_field($name);
+  $field    = field_info_field($name);
   $instance = field_info_instance('node', $name, $type->type);
   if (empty($field)) {
     $field = array(
@@ -52,7 +52,7 @@ function simple_field_create_textarea ($type, $name, $label) {
   @param $label (string) the field label.
 */
 function simple_field_create_textfield ($type, $name, $label) {
-  $field = field_info_field($name);
+  $field    = field_info_field($name);
   $instance = field_info_instance('node', $name, $type->type);
   if (empty($field)) {
     $field = array(
@@ -97,7 +97,7 @@ function simple_field_create_textfield ($type, $name, $label) {
     FIELD_CARDINALITY_UNLIMITED.
 */
 function simple_field_create_term_reference ($type, $name, $label, $machineName, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
-  $field = field_info_field ($name);
+  $field    = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
     field_create_field (array (
@@ -139,8 +139,6 @@ function simple_field_create_term_reference ($type, $name, $label, $machineName,
       )
     ));
   }
-
-  return $instance;
 }
 
 /**
@@ -154,7 +152,7 @@ function simple_field_create_term_reference ($type, $name, $label, $machineName,
     FIELD_CARDINALITY_UNLIMITED.
 */
 function simple_field_create_entity_reference ($type, $name, $label, $target_types, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
-  $field = field_info_field ($name);
+  $field    = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
     field_create_field (array (
@@ -182,18 +180,17 @@ function simple_field_create_entity_reference ($type, $name, $label, $target_typ
       ))
     ));
   }
-  return $instance;
 }
 
 /**
   @brief Creates a date field and adds it to the
-    PubMed content type.
+    content type.
   @param $type (object) the content type.
   @param $name (string) the field name.
   @param $label (string) the field label.
 */
 function simple_field_create_date_field ($type, $name, $label) {
-  $field = field_info_field ($name);
+  $field    = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
     field_create_field (array (
@@ -229,8 +226,36 @@ function simple_field_create_date_field ($type, $name, $label) {
       )
     ));
   }
+}
 
-  return $instance;
+/**
+  @brief Creates a relation field and adds it to
+    the content type.
+  @param $type (object) the content type.
+  @param $name (string) the field name.
+  @param $label (string) the field label.
+*/
+function simple_field_create_relation_field ($type, $name, $label) {
+  $field    = field_info_field ($name);
+  $instance = field_info_instance ('node', $name, $type->type);
+
+  if (empty ($field)) {
+    field_create_field (array (
+      'field_name'  => $name,
+      'type'        => 'relation',
+      'cardinality' => 1
+    ));
+  }
+  if (empty ($instance)) {
+    field_create_instance (array (
+      'field_name'  => $name,
+      'entity_type' => 'node',
+      'bundle'      => $type->type,
+      'label'       => $label,
+      'widget'      => array (
+        'type'      => 'relation_default'
+    )));
+  }
 }
 
 /**
