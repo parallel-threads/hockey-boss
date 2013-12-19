@@ -1,0 +1,16 @@
+<?php
+/**
+  @file
+  @brief This file creates the core content types,
+    relations, and vocabularies used on the Hockey
+    Boss site.
+*/
+
+/**
+  @brief Implements hook_install ().
+  @detail
+    Creates the core content types, relations, and
+    vocabularies used on the Hockey Boss site.
+*/
+function hockey_boss_install () {
+}

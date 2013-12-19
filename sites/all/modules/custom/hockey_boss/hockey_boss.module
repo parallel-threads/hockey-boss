@@ -1,0 +1,7 @@
+<?php
+/**
+  @file
+  @brief The Hockey Boss module defines the core
+    content types and user roles used on the Hockey
+    Boss site.
+*/

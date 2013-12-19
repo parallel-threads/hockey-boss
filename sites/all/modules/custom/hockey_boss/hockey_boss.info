@@ -1,0 +1,9 @@
+name = Hockey Boss
+description = "Defines the base content types and user roles used on the Hockey Boss site."
+core = 7.x
+package = HockeyBoss
+dependencies[] = relation
+dependencies[] = simple_field
+files[] = hockey_boss.inc
+files[] = hockey_boss.install
+files[] = hockey_boss.module
