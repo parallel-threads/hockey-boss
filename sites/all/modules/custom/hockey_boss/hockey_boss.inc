@@ -64,30 +64,10 @@ function hockey_boss_create_coach_profile_type () {
   // does the simple_field_create_entity_reference function need to have an argument allowing user entity references?
   // simple_field_create_entity_reference ($type, $type->type . '_user', t ('Coach User Account'), array ('user'));
 
-  // should this be using relationships to model affiliations instead?
   // simple_field_create_entity_reference ($type, $type->type . '_team', t ('Team Profile'));
 }
 
-///
+/// Creates the Team Profile type.
 function hockey_boss_create_team_profile_type () {
   $type = hockey_boss_create_type (hockey_boss_TEAM_PROFILE_TYPE, 'Team Profile', 'Represents amateur hockey teams.');
-
-  hockey_boss_create_team_coach_relation ();
-  simple_field_create_relation_field ($type, 'Coach', 'The team\'s coach.');
-}
-
-// ----- II. Relations -----
-
-/// The Team Coach relation type name.
-define ('hockey_boss_TEAM_COACH_RELATION', 'hockey_boss_team_coach_relation'); 
-
-/// Creates the Team Coach relation.
-function hockey_boss_create_team_coach_relation () {
-  relation_type_create (array (
-    'relation_type'  => hockey_boss_TEAM_COACH_RELATION,
-    'label'          => t ('Team Coach'),
-    'directional'    => true,
-    'source_bundles' => array ('node:' . hockey_boss_TEAM_PROFILE_TYPE),
-    'target_bundles' => array ('node:' . hockey_boss_COACH_PROFILE_TYPE)
-  ));
 }

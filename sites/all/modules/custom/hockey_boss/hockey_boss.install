@@ -13,4 +13,21 @@
     vocabularies used on the Hockey Boss site.
 */
 function hockey_boss_install () {
+  module_load_include ('inc', 'hockey_boss');
+
+  // I. Create the core content types.
+  hockey_boss_create_coach_profile_type ();
+  hockey_boss_create_team_profile_type ();
+  drupal_set_message ('Created the core Hockey Boss types.');
+}
+
+/**
+*/
+function hockey_boss_uninstall () {
+  module_load_include ('inc', 'hockey_boss');
+
+  // I. Delete the core content tpes.
+  node_type_delete (hockey_boss_COACH_PROFILE_TYPE);
+  node_type_delete (hockey_boss_TEAM_PROFILE_TYPE);
+  drupal_set_message ('Deleted the core Hockey Boss types.');
 }

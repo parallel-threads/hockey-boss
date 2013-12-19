@@ -229,36 +229,6 @@ function simple_field_create_date_field ($type, $name, $label) {
 }
 
 /**
-  @brief Creates a relation field and adds it to
-    the content type.
-  @param $type (object) the content type.
-  @param $name (string) the field name.
-  @param $label (string) the field label.
-*/
-function simple_field_create_relation_field ($type, $name, $label) {
-  $field    = field_info_field ($name);
-  $instance = field_info_instance ('node', $name, $type->type);
-
-  if (empty ($field)) {
-    field_create_field (array (
-      'field_name'  => $name,
-      'type'        => 'relation',
-      'cardinality' => 1
-    ));
-  }
-  if (empty ($instance)) {
-    field_create_instance (array (
-      'field_name'  => $name,
-      'entity_type' => 'node',
-      'bundle'      => $type->type,
-      'label'       => $label,
-      'widget'      => array (
-        'type'      => 'relation_default'
-    )));
-  }
-}
-
-/**
   @brief Adds an entity id to an entity reference field.
   @param $id (integer) the entity id.
   @return (array) the field value.
