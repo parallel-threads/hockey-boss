@@ -1,0 +1,399 @@
+<?php
+/**
+  @file
+  @brief Defines the Simple Table API functions.
+  @note
+    The Following Data structures are used
+    throughout this module.
+
+    1. Simple Table Arrays
+       Simple Table Arrays must have the following structure:
+
+         array ('caption' => <caption>,                                    // required.
+                'columns'      => array (
+                                    array ('column_name' => <column name>,       // required.
+                                           'label'       => <column label>)      // optional.
+                                    ...)
+                'rows'         => array (array (<field value>, ...), ...), // required.
+                'footer'       => array (<field value>, ...)               // optional.
+         )
+
+    2. Table Data Arrays.
+       Table Data Arrays are used to describe
+       tables in a slightly more abstract format.
+       Each array must have the following structure.
+
+         array (
+           'module'  => '<module name>'                         // Required if you are using any callback functions. This is used to load the module's include file.
+           'caption' => <caption>                               // required.
+           'rows' => array (<row name>, ...),                   // optional.
+           'columns' => array (                                 // optional.
+             array (
+               'column_name' => <column name>,                  // required.
+               'label'       => <column label>,                 // optional.
+               'weight'      => <weight>),                      // required.
+             ...
+           ),
+           'sortable'    => <true|false>,                       // optional (default true). Whether or not users may change the sorting.
+           'sort_column' => <column name>,                      // optional. (may be 'none').
+           'label_column_name' => <column name>,                // optional. The name of the column that holds row labels.
+           'show_totals' => <true|false>,                       // optional (default false).
+           'fields' => array (
+              array ('column_name'   => <column name>,          // required.
+                     'row_name'      => <row name>,             // required.
+                     'value'         => <field value>,          // required.
+                     'display_value' => <display field value>), // optional.
+                ...
+           ),
+           'default_field_value_function'  => <callback (column_name, row_name) -> field_value> // optional.
+           'default_field_value_arguments' => array (<additional argument>) // optional. Additional arguments to pass to the default value function.
+
+        note that 'footer' is a reserved row name,
+        used to denote the table footer row.
+
+        note also that display_value may be a form
+        element array as defined by the Form API.
+        When it is, only the simple_table_form
+        function may be used to render the data
+        array. Otherwise, display_value should
+        simply be a string.
+
+        note also that PHP's function reference
+        system is temperamental, you must make sure
+        that you manually include any files that
+        you need (preferably by calling
+        module_load_include) within all of your
+        callback functions.
+*/
+
+/**
+  @brief Accepts a Data Array and returns all of
+    the row names including those defined
+    implicitly.
+*/
+function _simple_table_get_all_row_names ($data) {
+  $row_names = isset ($data ['rows']) ? $data ['rows'] : array ();
+  foreach ($data ['fields'] as $field) {
+    if (!in_array ($field ['row_name'], $row_names)) {
+      $row_names [] = $field ['row_name'];
+    }
+  }
+  return $row_names;
+}
+
+/**
+  @brief Accepts a Data Array and returns all of
+    the columns including those defined implicitly.
+*/
+function _simple_table_get_all_columns ($data) {
+  $columns = isset ($data ['columns']) ? $data ['columns'] : array ();
+  foreach ($data ['fields'] as $field) {
+    $match = false;
+    foreach ($columns as $column) {
+      if ($column ['column_name'] === $field ['column_name']) {
+        $match = true;
+        break;
+      }
+    }
+    if ($match) { continue; }
+    $columns [] = array (
+      'column_name' => $field ['column_name'],
+      'weight'      => 0
+    );
+  }
+  return $columns;
+}
+
+/**
+  @brief Accepts two columns and returns true iff
+    the first one has a lower weight than the
+    second.
+*/
+function _simple_table_column_lt ($x, $y) {
+  return $x ['weight'] < $y ['weight'];
+}
+
+/*
+  @brief Accepts a Data Array and returns all of
+    the columns sorted by column weight.
+*/
+function _simple_table_get_all_columns_sorted ($data) {
+  $columns = _simple_table_get_all_columns ($data);
+  usort ($columns, '_simple_table_column_lt');
+  return $columns;
+}
+
+/**
+  @brief Accepts a Data Array and returns all of
+    the column names sorted by column weight.
+*/
+function _simple_table_get_all_column_names_sorted ($data) {
+  $column_names = array ();
+  foreach (_simple_table_get_all_columns_sorted ($data) as $column) {
+    $column_names [] = $column ['column_name'];
+  }
+  return $column_names;
+}
+
+/**
+  @brief Accepts a Data Array, a column name, and
+    a row name, and returns the value of the field
+    that is in the given column and row.
+  @note This function will call the default value
+    function if the field value is not given in the
+    fields array.
+*/
+function _simple_table_get_field ($data, $column_name, $row_name) {
+  foreach ($data ['fields'] as $field) {
+    if ($field ['column_name'] === $column_name &&
+        $field ['row_name']    === $row_name) {
+      return $field;
+    }
+  }
+  if (isset ($data ['default_field_value_function'])) {
+    module_load_include ('inc', $data ['module']);
+    $arguments = array ($column_name, $row_name);
+    if (isset ($data ['default_field_value_arguments'])) {
+      $arguments = array_merge ($arguments, $data ['default_field_value_arguments']);
+    }
+    $value = call_user_func_array ($data ['default_field_value_function'], $arguments);
+    return array (
+      'column_name'   => $column_name,
+      'row_name'      => $row_name,
+      'value'         => $value,
+      'display_value' => $value
+    );
+  } // else.
+  return '';
+}
+
+/**
+  @brief Accepts a Data Array and returns the data
+    rows.
+  @note Each row contains all of the field values,
+    including defaults and the columns have been
+    sorted. 
+*/
+function _simple_table_get_rows ($data) {
+  $rows = array ();
+  foreach (_simple_table_get_all_row_names ($data) as $row_name) {
+    $row = array (
+      'row_name' => $row_name,
+      'fields'   => array (),
+    );
+    if (isset ($data ['sort_column'])) {
+      $sort_field = _simple_table_get_field ($data, $data ['sort_column'], $row_name);
+      $row ['sort_value'] = $sort_field ['value'];
+    }
+    foreach (_simple_table_get_all_column_names_sorted ($data) as $column_name) {
+      $row ['fields'][] = _simple_table_get_field ($data, $column_name, $row_name);
+    }
+    $rows [] = $row;
+  }
+  return $rows;
+}
+
+/**
+  @brief Accepts two rows and returns true iff the
+    first one has a lower weight than the second.
+*/
+function _simple_table_row_lt ($x, $y) {
+  return !isset ($x ['sort_value']) ||
+         $x ['sort_value'] === '' ||
+         (isset ($y ['sort_value']) && $x ['sort_value'] < $y ['sort_value']);
+}
+
+/**
+  @brief Accepts a Data array and returns the
+    Totals footer row for the table. 
+*/
+function _simple_table_totals_footer ($data) {
+  $footer = array ();
+  foreach (_simple_table_get_all_column_names_sorted ($data) as $column_name) {
+    if (isset ($data ['label_column_name']) && $column_name === $data ['label_column_name']) {
+      $footer [] = t ('Totals');
+    } else {
+      $column_total = 0;
+      foreach (_simple_table_get_all_row_names ($data) as $row_name) {
+        $field = _simple_table_get_field ($data, $column_name, $row_name);
+        if (!isset ($field ['value'])) {
+          $field ['value'] = '0';
+        }
+        $column_total += $field ['value'];
+      }
+      $footer [] = $column_total;
+    }
+  }
+  return $footer;
+}
+
+/**
+  @brief Accepts a Data Array and returns the data
+    rows sorted using the sorted column field value.
+*/
+function _simple_table_get_rows_sorted ($data) {
+  $rows = _simple_table_get_rows ($data);
+  if (isset ($data ['sort_column']) && $data ['sort_column'] !== 'none') {
+    usort ($rows, '_simple_table_row_lt');
+  }
+  return $rows;
+}
+
+/**
+  @brief Accepts a Data Array and returns the data
+    row values sorted using the sorted column field
+    value.
+*/
+function _simple_table_get_row_values_sorted ($data) {
+  $rows = array ();
+  foreach (_simple_table_get_rows_sorted ($data) as $row) {
+    $row_values = array ();
+    foreach ($row ['fields'] as $field) {
+      if (!isset ($field ['value'])) {
+        $field ['value'] = '0';
+      }
+      $row_values [] = isset ($field ['display_value']) ? $field ['display_value'] : $field ['value'];
+    }
+    $rows [] = $row_values;
+  }
+  return $rows;
+}
+
+/**
+  @brief Accepts a Data Array and returns a Simple
+    Table Array for rendering.
+*/
+function simple_table ($data) {
+  $table = array (
+    'caption' => isset ($data ['caption']) ? $data ['caption'] : '',
+    'columns' => _simple_table_get_all_columns_sorted ($data),
+    'rows'    => _simple_table_get_row_values_sorted ($data)
+  );
+  if (isset ($data ['show_totals']) && $data ['show_totals']) {
+    $table ['footer'] = _simple_table_totals_footer ($data);
+  }
+  return $table;
+}
+
+/// The AJAX callback for the sort buttons in the Simple Table form.
+function _simple_table_sort () {
+  list ($form, $form_state) = ajax_get_form();
+
+  // Set the sort column in the table data array.
+  $form_state ['build_info']['args'][0]['sort_column'] = $form_state ['input']['_triggering_element_value'];
+
+  // Force Drupal to create a new form rather than use a cached version.
+  unset ($form_state ['input']['form_build_id']);
+
+  // Create and return the new form.
+  return drupal_build_form ('simple_table_form', $form_state);
+}
+
+/**
+  @brief Returns a form that embeds a table.
+  @param $data (array) the table data array.
+  @return (array) the form.
+*/
+function simple_table_form ($form, $form_state, $data = null) {
+
+  if (is_null ($data)) {
+    return array ();
+  }
+
+  // I. Create the table form.
+
+  // set a unique id to allow the AJAX wrapper to reference the entire form.
+  $unique_form_id = drupal_html_id ($form_state ['build_info']['form_id']);
+
+  $table = simple_table ($data);
+
+  $form = array (
+    '#prefix' => '<div id="' . $unique_form_id . '">',
+    '#suffix' => '</div>',
+    'table' => array (
+      '#type'   => 'container',
+      '#prefix' => '<table class="simple_table"><caption>' . $table ['caption'] . '</caption>',
+      '#suffix' => '</table>',
+      'header'  => array (
+        '#type'   => 'container',
+        '#prefix' => '<thead><tr>',
+        '#suffix' => '</tr></thead>'
+      ),
+      'body'    => array (
+        '#type'   => 'container',
+        '#prefix' => '<tbody>',
+        '#suffix' => '</tbody>'
+      )
+  ));
+
+  // II. Render the table header.
+
+  $column_offset = 0;
+  $sortable = !isset ($data ['sortable']) || $data ['sortable'];
+  $sort_column_offset = null;
+  foreach ($table ['columns'] as $column) {
+    $column_name = isset ($column ['label']) ? $column ['label'] : $column ['column_name'];
+    $is_sort_column = isset ($data ['sort_column']) && $column_name == $data ['sort_column'];
+    if ($is_sort_column) {
+      $sort_column_offset = $column_offset;
+    }
+    $column_element = array (
+      '#prefix' => $sortable && $is_sort_column ? '<th class="simple_table_sort_column_header">' : '<th>',
+      '#suffix' => ($sortable && $is_sort_column ? '<img class="simple_table_sort_icon" src="' . url (drupal_get_path ('module', 'simple_table') . '/theme/images/desc_sort_icon.png') . '">' : '') . '</th>',
+    );
+    if ($sortable) {
+      $column_element ['#type']  = 'button';
+      $column_element ['#value'] = $column_name;
+      $column_element ['#ajax']  = array (
+        'callback' => '_simple_table_sort',
+        'wrapper'  => $unique_form_id
+      );
+    } else {
+      $column_element ['#markup']  = $column_name;
+    }
+    $form ['table']['header'][] = $column_element;
+    $column_offset ++;
+  }
+
+  // III. Render the table body.
+
+  foreach ($table ['rows'] as $row) {
+    $row_elem = array (
+      '#prefix' => '<tr>',
+      '#suffix' => '</tr>'
+    );
+    $field_offset = 0;
+    foreach ($row as $field) {
+      $is_sort_field = !is_null ($sort_column_offset) && $field_offset == $sort_column_offset;
+      $field_elem = array (
+        '#prefix' => $sortable && $is_sort_field ? '<td class="simple_table_sort_column_field">' : '<td>',
+        '#suffix' => '</td>',
+        'field'   => is_array ($field) ? $field : array ('#markup' => $field)
+      );
+      $row_elem [] = $field_elem;
+      $field_offset ++;
+    }
+    $form ['table']['body'][] = $row_elem;
+  }
+
+  // IV. Render the table footer.
+
+  if (!empty ($table ['footer'])) {
+    $form ['table']['footer'] = array (
+      '#type'   => 'container',
+      '#prefix' => '<tfoot><tr>',
+      '#suffix' => '</tr></tfoot>'
+    );
+    $field_offset = 0;
+    foreach ($table ['footer'] as $field) {
+      $is_sort_field = !is_null ($sort_column_offset) && $field_offset == $sort_column_offset;
+      $form ['table']['footer'][] = array (
+        '#prefix' => $is_sort_field ? '<td class="simple_table_sort_column_field">' : '<td>',
+        '#suffix' => '</td>',
+        'field' => is_array ($field) ? $field : array ('#markup' => $field)
+      );
+      $field_offset ++;
+    }
+  }
+  return $form;
+}
