@@ -133,14 +133,97 @@ function hockey_boss_get_nodes ($type) {
   @param $type (string) the node type.
 */
 function hockey_boss_delete_type ($type)  {
+  // I. Delete the node type nodes.
   foreach (hockey_boss_get_nodes ($type) as $nid) {
     node_delete ($nid);
   }
+  // II. Delete the node type.
+  node_type_delete ($type);
 }
 
 /// Deletes the core content types.
 function hockey_boss_delete_types () {
   foreach (array_keys (hockey_boss_types ()) as $name) {
     hockey_boss_delete_type ($name);
+  }
+}
+
+// ----- II. User Roles -----
+
+/// The Coach role name. 
+define ('hockey_boss_COACH_ROLE', 'hockey_boss_coach_role');
+
+/// The Team Staff role name.
+define ('hockey_boss_TEAM_STAFF_ROLE', 'hockey_boss_team_staff_role');
+
+/// The Player role name.
+define ('hockey_boss_PLAYER_ROLE', 'hockey_boss_player_role');
+
+/**
+  @brief Creates the given user role.
+  @param $name (string) the role name.
+  @return (boolean) returns true iff the role was 
+    created successfully.
+  @note This function will display and log an error
+    message on failure.
+*/
+function hockey_boss_create_role ($name) {
+  if (!user_role_load_by_name ($name)) {
+    if (!user_role_save ((object) array ('name' => $name))) {
+      $msg = "Error: an error occured while trying to create the $name role.";
+      drupal_set_message ($msg, 'error');
+      watchdog (
+        'hockey_boss',
+        '[hockey_boss_create_role] ' . $msg,
+        array (), 
+        WATCHDOG_ERROR
+      );  
+    }   
+  }
+}
+
+/**
+  @brief Assigns the given permissions to the role
+    that has the given name.
+  @param $name (string) the role name.
+  @param $permissions (array) the permission names.
+*/
+function hockey_boss_grant_permissions ($name, $permissions) {
+  $role = user_role_load_by_name ($name);
+  user_role_grant_permissions ($role->rid, $permissions);
+}
+
+/**
+  @brief Returns a list of the core user roles and 
+    their permissions.
+  @return (array) the core user roles.
+*/
+function hockey_boss_roles () {
+  return array (
+    hockey_boss_COACH_ROLE => array (),
+    hockey_boss_TEAM_STAFF_ROLE => array (),
+    hockey_boss_PLAYER_ROLE => array ()
+  );
+}
+
+/**
+  @brief Creates the core user roles and assigns
+    them their default permissions.
+*/
+function hockey_boss_create_roles () {
+  foreach (hockey_boss_roles () as $name => $permissions) {
+    // I. create the user role.
+    hockey_boss_create_role ($name);
+
+    // II. assign the default permissions.
+    hockey_boss_grant_permissions ($name, $permissions);
+  }
+}
+
+/// Deletes the core user roles.
+function hockey_boss_delete_roles () {
+  foreach (array_keys (hockey_boss_roles ()) as $name) {
+    // I. delete the user role.
+    user_role_delete ($name);
   }
 }

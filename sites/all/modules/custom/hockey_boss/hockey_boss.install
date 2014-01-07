@@ -18,6 +18,10 @@ function hockey_boss_install () {
   // I. Create the core content types.
   hockey_boss_create_types ();
   drupal_set_message ('Created the core Hockey Boss types.');
+
+  // II. Create the core user roles.
+  hockey_boss_create_roles ();
+  drupal_set_message ('Created the core Hockey Boss user roles.');
 }
 
 /**
@@ -28,7 +32,11 @@ function hockey_boss_install () {
 function hockey_boss_uninstall () {
   module_load_include ('inc', 'hockey_boss');
 
-  // I. Delete the core content tpes.
+  // I. Delete the core user roles.
+  hockey_boss_delete_roles ();
+  drupal_set_message ('Deleted the core Hockey Boss user roles.');
+
+  // II. Delete the core content tpes.
   hockey_boss_delete_types ();
   drupal_set_message ('Deleted the core Hockey Boss types.');
 }
