@@ -183,13 +183,6 @@ function simple_field_create_entity_reference ($type, $name, $label, $target_bun
       ))
     ));
   }
-  watchdog (
-    'simple_field',
-    '[simple_field_create_entity_reference] field info: <pre>@field_info</pre> instance info: <pre>@instance_info</pre>',
-    array (
-      '@field_info'    => print_r (field_info_field ($name), true),
-      '@instance_info' => print_r (field_info_instance ('node', $name, $type->type), true)
-  ));
 }
 
 /**
