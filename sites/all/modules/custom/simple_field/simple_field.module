@@ -146,12 +146,14 @@ function simple_field_create_term_reference ($type, $name, $label, $machineName,
   @param $type (object) the content type.
   @param $name (string) the field name.
   @param $label (string) the field label.
-  @param $target_types (array) the target types.
+  @param $target_bundles (array) the target bundles.
+  @param $target_type (string) the target type.
   @param $cardinality (int) the default
     cardinality. Default
     FIELD_CARDINALITY_UNLIMITED.
 */
-function simple_field_create_entity_reference ($type, $name, $label, $target_types, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
+function simple_field_create_entity_reference ($type, $name, $label, $target_bundles = array (), $target_type = 'node', $cardinality = FIELD_CARDINALITY_UNLIMITED) {
+  module_load_include ('module', 'entity_reference');
   $field    = field_info_field ($name);
   $instance = field_info_instance ('node', $name, $type->type);
   if (empty ($field)) {
@@ -161,8 +163,9 @@ function simple_field_create_entity_reference ($type, $name, $label, $target_typ
       'entity_types' => array ('node'),
       'cardinality'  => $cardinality,
       'settings'     => array (
+        'target_type'      => $target_type,
         'handler_settings' => array (
-          'target_bundles' => $target_types,
+          'target_bundles' => $target_bundles,
           'sort' => array ('type' => 'none')
     ))));
   }
@@ -180,6 +183,13 @@ function simple_field_create_entity_reference ($type, $name, $label, $target_typ
       ))
     ));
   }
+  watchdog (
+    'simple_field',
+    '[simple_field_create_entity_reference] field info: <pre>@field_info</pre> instance info: <pre>@instance_info</pre>',
+    array (
+      '@field_info'    => print_r (field_info_field ($name), true),
+      '@instance_info' => print_r (field_info_instance ('node', $name, $type->type), true)
+  ));
 }
 
 /**
