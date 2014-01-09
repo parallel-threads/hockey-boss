@@ -74,8 +74,9 @@ function stat_get_stat_type ($machine_name, $name, $description) {
   @param $machine_name (string) the stat type machine name.
   @param $name (string) the stat type name.
   @param $description (string) a description of the stat type.
+  @param $subject_type (string) the machine name of the entity type referenced by the subject field.
 */
-function stat_create_stat_type ($machine_name, $name, $description) {
+function stat_create_stat_type ($machine_name, $name, $description, $subject_type = null) {
   // I. Create the content type.
   $type = stat_get_stat_type ($machine_name, $name, $description);
   node_type_save ($type);
@@ -83,7 +84,7 @@ function stat_create_stat_type ($machine_name, $name, $description) {
   // II. Create core fields.
   simple_field_create_textfield        ($type, $machine_name . '_value',   t ('Value'));
   simple_field_create_term_reference   ($type, $machine_name . '_unit',    t ('Units'),   array ('stat_unit'), 1);
-  simple_field_create_entity_reference ($type, $machine_name . '_subject', t ('Subject'), array (), 'node', 1);
+  simple_field_create_entity_reference ($type, $machine_name . '_subject', t ('Subject'), is_null ($subject_type) ? array () : array ($subject_type), 'node', 1);
   simple_field_create_date_field       ($type, $machine_name . '_date',    t ('Date'));
 
   // III. Return the type definition.
@@ -184,6 +185,40 @@ function stat_delete_node_types ($types) {
 }
 
 /**
+  @brief Accepts an entity id and returns those
+    stats that reference the entity that has the
+    given id.
+*/
+function stat_get_stats_by_subject ($type, $entity_id) {
+  $stats = array ();
+  foreach ((array) stat_get_nodes ($type) as $stat_nid) {
+    $stat = node_load ($stat_nid);
+    if ($entity_id == stat_get_subject ($stat)) {
+      $stats[] = $stat;
+    }
+  }
+  return $stats;
+}
+
+/**
+  @brief Accepts a stat node and returns its subject.
+  @param $node (object) the stat node.
+  @return (int) the subject entity id.
+*/
+function stat_get_subject ($node) {
+  return $node->{$node->type . '_subject'}['und'][0]['target_id'];
+}
+
+/**
+  @brief Accepts a stat node and returns its date.
+  @param $node (object) the stat node.
+  @return (string) the date.
+*/
+function stat_get_date ($node) {
+  return $node->{$node->type . '_date'}['und'][0]['value'];
+}
+
+/**
   @brief Accepts a stat node and returns its value. 
   @param $node (object) the stat node.
   @return (string) the stat value.
@@ -207,7 +242,7 @@ function stat_get_unit_tid ($node) {
   @return (object) the unit term.
 */
 function stat_get_unit_term ($node) {
-  return taxonomy_term_load ($stat_get_unit_tid ($node));
+  return taxonomy_term_load (stat_get_unit_tid ($node));
 }
 
 /**
@@ -216,5 +251,5 @@ function stat_get_unit_term ($node) {
   @return (string) the unit name.
 */
 function stat_get_unit ($node) {
-  return stat_get_unit_term ($node)->title;
+  return stat_get_unit_term ($node)->name;
 }
