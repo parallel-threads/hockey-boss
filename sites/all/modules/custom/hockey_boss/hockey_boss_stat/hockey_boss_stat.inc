@@ -20,17 +20,21 @@ define ('hockey_boss_stat_PPS_TYPE', 'hockey_boss_stat_pps');
   @return (array) the stat types.
 */
 function hockey_boss_stat_get_stat_types () {
+  module_load_include ('inc', 'hockey_boss');
+
   return array (
     hockey_boss_stat_PGS_TYPE => array (
       'name'          => 'Player Game Stat',
       'description'   => 'Represents player game statistics.',
+      'subject_type'  => hockey_boss_PLAYER_PROFILE_TYPE,
       'create_fields' => array (
         'module'   => 'hockey_boss_stat',
         'callback' => 'hockey_boss_stat_create_pgs_fields'
     )),
     hockey_boss_stat_PPS_TYPE => array (
-      'name'                   => 'Player Performance Stat',
-      'description'            => 'Represents player performance statistics.'
+      'name'          => 'Player Performance Stat',
+      'description'   => 'Represents player performance statistics.',
+      'subject_type'  => hockey_boss_PLAYER_PROFILE_TYPE
   ));
 }
 
