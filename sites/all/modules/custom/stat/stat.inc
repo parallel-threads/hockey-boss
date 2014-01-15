@@ -228,12 +228,26 @@ function stat_get_value ($node) {
 }
 
 /**
+  @brief Accepts a stat node and a value and updates the stats value.
+  @param $node (object) the stat node.
+  @param $value (string) the stat value.
+  @return (object) the modified stat node.
+  @note The stat object will need to be saved using node_save after this operation is performed.
+*/
+function stat_set_value ($node, $value) {
+  $node->{$node->type . '_value'}['und'][0]['value'] = $value;
+  return $node;
+}
+
+/**
   @brief Accepts a stat node and returns its unit's term id.
   @param $node (object) the stat node.
   @return (int) the unit term id.
 */
 function stat_get_unit_tid ($node) {
-  return $node->{$node->type . '_unit'}['und'][0]['tid'];
+  $field_name = $node->type . '_unit';
+  $field = $node->{$field_name};
+  return isset ($field ['und']) ? $field ['und'][0]['tid'] : null;
 }
 
 /**
@@ -242,7 +256,8 @@ function stat_get_unit_tid ($node) {
   @return (object) the unit term.
 */
 function stat_get_unit_term ($node) {
-  return taxonomy_term_load (stat_get_unit_tid ($node));
+  $tid = stat_get_unit_tid ($node);
+  return is_null ($tid) ? null : taxonomy_term_load ($tid);
 }
 
 /**
@@ -251,5 +266,6 @@ function stat_get_unit_term ($node) {
   @return (string) the unit name.
 */
 function stat_get_unit ($node) {
-  return stat_get_unit_term ($node)->name;
+  $term = stat_get_unit_term ($node);
+  return is_null ($term) ? '' : $term->name;
 }
