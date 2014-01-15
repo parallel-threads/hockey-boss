@@ -4,6 +4,10 @@
   @brief Defines the stat tables.
 */
 
+function hockey_boss_stat_table_edit_pps ($user) {
+  return true;
+}
+
 /**
   @brief Accepts a player node and returns a simple
     table form that represents the player's
@@ -24,7 +28,8 @@ function hockey_boss_stat_table_pps ($player) {
         'column_name' => t ('Year'),
         'weight'      => 10
     )), 
-    'sort_column' => t ('Year')
+    'sort_column'     => t ('Year'),
+    'access_function' => 'hockey_boss_stat_table_edit_pps'
   );  
   $stat_years = array (); 
   foreach ($stats as $stat) {
@@ -43,8 +48,8 @@ function hockey_boss_stat_table_pps ($player) {
     $data ['fields'][] = array (
       'column_name'   => $stat->title,
       'row_name'      => $stat_year,
+      'stat'          => $stat->nid,
       'value'         => $stat_value,
-      'display_value' => user_access ('edit any soccer_boss_pfs content') ? l ("$stat_value $stat_unit", $stat_uri ['path'] . '/edit') : "$stat_value $stat_unit"
     );
   }
   return $data;
