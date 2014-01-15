@@ -30,8 +30,9 @@
            'fields' => array (
               array ('column_name'   => <column name>,          // required.
                      'row_name'      => <row name>,             // required.
-                     'value'         => <field value>,          // required.
-                     'display_value' => <display field value>), // optional.
+                     'stat'          => <stat node id>,         // optional. The stat whose value will be displayed in the field. Overrides the value field if given.
+                     'value'         => <field value>,          // required. Overriden by the stat field if given.
+                     'display_value' => <display field value>), // optional. Overriden by the stat field if given.
                 ...
            ),
            'field_width'     => <field width>,                  // optional (default 5).
@@ -47,14 +48,19 @@
     it can be embeded into an editable table.
   @param $value (string) the field value.
   @param $field_width (int) the textfield width.
+  @param $suffix (string) an optional suffix.
   @return (array) the form element.
 */
-function statsheet_wrap_value ($value, $field_width = 5) {
-  return array (
+function statsheet_wrap_value ($value, $field_width = 5, $suffix = null) {
+  $elem = array (
     '#type'          => 'textfield',
     '#default_value' => $value,
     '#size'          => $field_width
   );
+  if (!is_null ($suffix)) {
+    $elem ['#suffix'] = $suffix;
+  }
+  return $elem;
 }
 
 /**
@@ -82,6 +88,8 @@ function statsheet_wrap_default_value ($column_name, $row_name, $default_value_f
   @return (array) the form.
 */
 function statsheet_form ($form, $form_state, $data = null) {
+  module_load_include ('inc', 'stat');
+
   if (is_null ($data)) {
     return array ();
   }
@@ -98,12 +106,26 @@ function statsheet_form ($form, $form_state, $data = null) {
 
     // I.A. wrap field values.
     $field_width = isset ($data ['field_width']) ? $data ['field_width'] : 5;
+
     foreach ($data ['fields'] as &$field) {
-      $field ['display_value'] = statsheet_wrap_value (
-        isset ($field ['display_value']) ? $field ['display_value'] : $field ['value'],
-        $field_width
-      );
+      if (isset ($field ['stat'])) {
+        $stat = node_load ($field ['stat']);
+        if ($stat) {
+          $field ['field_id'] = 'stat_' . $stat->nid;
+          $field ['value'] = stat_get_value ($stat);
+          $field ['display_value'] = statsheet_wrap_value (
+            $field ['value'],
+            $field_width,
+            stat_get_unit ($stat)
+          );
+        }
+      } else {
+        if (!isset ($field ['display_value'])) {
+          $field ['display_value'] = $field ['value'];
+        }
+      }
     }
+
     // I.B. wrap the default field value function.
     if (isset ($data ['default_field_value_function'])) {
       $data ['default_field_value_arguments'] = array (
@@ -118,14 +140,68 @@ function statsheet_form ($form, $form_state, $data = null) {
   // II. get the table form.
   $form = drupal_get_form ('simple_table_form', $data);
 
+  watchdog (
+    'statsheet',
+    '[statsheet_form] form: <pre>@form</pre>',
+    array (
+      '@form' => print_r ($form, true)
+  ));
+
   // III. add the submit button if editable.
   if ($editable) {
     $form [] = array (
       '#type'   => 'submit',
       '#value'  => t ('Update'),
-      '#submit' => array ($data ['submit_function'])
+      '#submit' => array ('statsheet_form_submit')
     );
   }
 
   return $form;
+}
+
+/**
+  @brief Implements hook_form_submit ().
+  @details
+    Updates any stats that were modified or created
+    using the statsheet interface.
+*/
+function statsheet_form_submit ($form, $form_state) {
+  module_load_include ('inc', 'stat');
+  watchdog (
+    'statsheet',
+    '[statsheet_form_submit] form state: <pre>@form_state</pre>',
+    array (
+      '@form_state' => print_r ($form_state, true)
+  ));
+  foreach ($form_state ['input'] as $key => $value) {
+    if (strpos ($key, 'stat_') !== 0) { continue; }
+    $stat_nid = substr ($key, 5);
+    watchdog (
+      'statsheet',
+      '[statsheet_form_submit] checking stat @stat_nid',
+      array (
+        '@stat_nid' => is_null ($stat_nid) ? '' : $stat_nid
+    ));
+    $stat = node_load ($stat_nid);
+    if (!$stat) { continue; } 
+    $stat_value = stat_get_value ($stat);
+    watchdog (
+      'statsheet',
+      '[statsheet_form_submit] stat value: @stat_value value: @value same?: @same stat @stat',
+      array (
+        '@stat_value' => $stat_value,
+        '@value'      => $value,
+        '@same'       => $stat_value == $value ? 'yes' : 'no',
+        '@stat' => print_r ($stat, true)
+    ));
+    if ($stat_value == $value) { continue; }
+    watchdog (
+      'statsheet',
+      '[statsheet_form_submit] updating stat @stat_nid',
+      array (
+        '@stat_nid' => $stat_nid
+    ));
+    $stat = stat_set_value ($stat, $value);
+    node_save ($stat);
+  }
 }
