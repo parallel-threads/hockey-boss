@@ -283,13 +283,6 @@ function simple_table ($data) {
   if (isset ($data ['show_totals']) && $data ['show_totals']) {
     $table ['footer'] = _simple_table_totals_footer ($data);
   }
-  watchdog (
-    'simple_table',
-    '[simple_table] table: <pre>@table</pre> data: <pre>@data</pre>',
-    array (
-      '@table' => print_r ($table, true),
-      '@data'  => print_r ($data, true)
-  ));
   return $table;
 }
 
@@ -383,13 +376,6 @@ function simple_table_form ($form, $form_state, $data = null) {
     );
     $field_offset = 0;
     foreach ($row as $field) {
-      watchdog (
-        'simple_table',
-        '[simple_table_form] field: <pre>@field</pre>',
-        array (
-          '@field' => print_r ($field, true)
-      ));
-
       $is_sort_field = !is_null ($sort_column_offset) && $field_offset == $sort_column_offset;
       $field_elem = array (
         '#prefix' => $sortable && $is_sort_field ? '<td class="simple_table_sort_column_field">' : '<td>',
