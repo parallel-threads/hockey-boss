@@ -39,7 +39,8 @@
            'label_column_name' => <column name>,                // optional. The name of the column that holds row labels.
            'show_totals' => <true|false>,                       // optional (default false).
            'fields' => array (
-              array ('column_name'   => <column name>,          // required.
+              array ('field_id'      => <field id>,             // optional. The field id associated with the field form element.
+                     'column_name'   => <column name>,          // required.
                      'row_name'      => <row name>,             // required.
                      'value'         => <field value>,          // required.
                      'display_value' => <display field value>), // optional.
@@ -157,12 +158,16 @@ function _simple_table_get_field ($data, $column_name, $row_name) {
       $arguments = array_merge ($arguments, $data ['default_field_value_arguments']);
     }
     $value = call_user_func_array ($data ['default_field_value_function'], $arguments);
-    return array (
+    $field_array = array (
       'column_name'   => $column_name,
       'row_name'      => $row_name,
       'value'         => $value,
       'display_value' => $value
     );
+    if (isset ($field ['field_id'])) {
+      $field_array ['field_id'] = $field ['$field_id'];
+    }
+    return $field_array ();
   } // else.
   return '';
 }
@@ -252,7 +257,13 @@ function _simple_table_get_row_values_sorted ($data) {
       if (!isset ($field ['value'])) {
         $field ['value'] = '0';
       }
-      $row_values [] = isset ($field ['display_value']) ? $field ['display_value'] : $field ['value'];
+      $row_value = array (
+        'value' => isset ($field ['display_value']) ? $field ['display_value'] : $field ['value'],
+      );
+      if (isset ($field ['field_id'])) {
+       $row_value ['id'] = $field ['field_id'];
+      }
+      $row_values [] = $row_value;
     }
     $rows [] = $row_values;
   }
@@ -272,6 +283,13 @@ function simple_table ($data) {
   if (isset ($data ['show_totals']) && $data ['show_totals']) {
     $table ['footer'] = _simple_table_totals_footer ($data);
   }
+  watchdog (
+    'simple_table',
+    '[simple_table] table: <pre>@table</pre> data: <pre>@data</pre>',
+    array (
+      '@table' => print_r ($table, true),
+      '@data'  => print_r ($data, true)
+  ));
   return $table;
 }
 
@@ -357,6 +375,7 @@ function simple_table_form ($form, $form_state, $data = null) {
 
   // III. Render the table body.
 
+  $row_offset = 0;
   foreach ($table ['rows'] as $row) {
     $row_elem = array (
       '#prefix' => '<tr>',
@@ -364,16 +383,27 @@ function simple_table_form ($form, $form_state, $data = null) {
     );
     $field_offset = 0;
     foreach ($row as $field) {
+      watchdog (
+        'simple_table',
+        '[simple_table_form] field: <pre>@field</pre>',
+        array (
+          '@field' => print_r ($field, true)
+      ));
+
       $is_sort_field = !is_null ($sort_column_offset) && $field_offset == $sort_column_offset;
       $field_elem = array (
         '#prefix' => $sortable && $is_sort_field ? '<td class="simple_table_sort_column_field">' : '<td>',
-        '#suffix' => '</td>',
-        'field'   => is_array ($field) ? $field : array ('#markup' => $field)
+        '#suffix' => '</td>'
       );
+
+      $field_value = is_array ($field ['value']) ? $field ['value'] : array ('#markup' => $field ['value']);
+      $field_id = isset ($field ['id']) ? $field ['id'] : 'field_' . $row_offset . '_' . $field_offset;
+      $field_elem [$field_id] = $field_value;
       $row_elem [] = $field_elem;
       $field_offset ++;
     }
     $form ['table']['body'][] = $row_elem;
+    $row_offset ++;
   }
 
   // IV. Render the table footer.
