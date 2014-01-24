@@ -30,7 +30,7 @@ function hockey_boss_stat_table_block_view ($delta = '') {
     case 'hockey_boss_stat_table_pps_table':
       $player = node_load (arg (1));
       if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
-        $content = drupal_get_form ('statsheet_form', hockey_boss_stat_table_pps ($player));
+        $content = drupal_get_form ('edit_table_form', hockey_boss_stat_table_pps ($player));
         return array (
           'subject' => '',
           'content' => $content
