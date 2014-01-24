@@ -320,7 +320,6 @@ function _simple_table_sort () {
   @return (array) the form.
 */
 function simple_table_form ($form, $form_state, $data = null) {
-
   if (is_null ($data)) {
     return array ();
   }
@@ -395,7 +394,6 @@ function simple_table_form ($form, $form_state, $data = null) {
         '#prefix' => $sortable && $is_sort_field ? '<td class="simple_table_sort_column_field">' : '<td>',
         '#suffix' => '</td>'
       );
-
       $field_value = is_array ($field ['value']) ? $field ['value'] : array ('#markup' => $field ['value']);
       $field_id = isset ($field ['id']) ? $field ['id'] : 'field_' . $row_offset . '_' . $field_offset;
       $field_elem [$field_id] = $field_value;

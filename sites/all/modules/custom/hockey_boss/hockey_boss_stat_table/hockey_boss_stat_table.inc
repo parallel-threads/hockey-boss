@@ -5,10 +5,14 @@
 */
 
 function hockey_boss_stat_table_edit_pps ($user) {
-  return true;
+  // return true;
+  return false;
 }
 
 function hockey_boss_stat_table_default_field_value ($column_name, $row_name, $player_nid) {
+  module_load_include ('inc', 'stat');
+  module_load_include ('inc', 'hockey_boss_stat');
+
   // I. Retrieve the stat associate with the field.
   $field_stat_name = $column_name;
   $field_stat_year = $row_name;
@@ -30,7 +34,7 @@ function hockey_boss_stat_table_default_field_value ($column_name, $row_name, $p
       'column_name'   => $column_name,
       'row_name'      => $row_name,
       'value'         => $stat_value,
-      'display_value' => $stat_value,
+      'display_value' => "$stat_value $stat_unit",
       'suffix'        => $stat_unit
     );
   }
@@ -86,7 +90,8 @@ function hockey_boss_stat_table_pps ($player) {
   $stats = stat_get_stats_by_subject (hockey_boss_stat_PPS_TYPE, $player->nid);
 
   $data = array (
-    'rows' => array ('2014', '2013'),
+    'module'  => 'hockey_boss_stat_table',
+    'rows'    => array ('2014', '2013'),
     'columns' => array (
       array (
         'column_name' => t ('Year'),
@@ -100,8 +105,8 @@ function hockey_boss_stat_table_pps ($player) {
         'column_name' => t ('Sprint'),
         'weight'      => 8
     )), 
-    'fields'          => array (),
-    'sort_column'     => t ('Year'),
+    'fields'                        => array (),
+    'sort_column'                   => t ('Year'),
     'submit_function'               => 'hockey_boss_stat_table_submit',
     'access_function'               => 'hockey_boss_stat_table_edit_pps',
     'default_field_value_function'  => 'hockey_boss_stat_table_default_field_value',
