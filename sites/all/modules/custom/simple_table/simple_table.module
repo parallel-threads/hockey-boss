@@ -145,30 +145,44 @@ function _simple_table_get_all_column_names_sorted ($data) {
     fields array.
 */
 function _simple_table_get_field ($data, $column_name, $row_name) {
+  // I. Return the specified field value if given.
   foreach ($data ['fields'] as $field) {
     if ($field ['column_name'] === $column_name &&
         $field ['row_name']    === $row_name) {
       return $field;
     }
   }
+  // II. Calculate and return the default field value if a default value function is given.
   if (isset ($data ['default_field_value_function'])) {
-    module_load_include ('inc', $data ['module']);
+    // A. Load an include file if given.
+    if (isset ($data ['module'])) {
+      module_load_include ('inc', $data ['module']);
+    }
+    // B. Generate the arguments list.
     $arguments = array ($column_name, $row_name);
     if (isset ($data ['default_field_value_arguments'])) {
       $arguments = array_merge ($arguments, $data ['default_field_value_arguments']);
     }
-    $value = call_user_func_array ($data ['default_field_value_function'], $arguments);
+    // C. Call the default field value function with the generated arguments.
+    $x = call_user_func_array ($data ['default_field_value_function'], $arguments);
+
+    // D. Return the generated field value.
+    if (is_array ($x)) {
+      // the default field value function may return either a field array or a field value. Return the array if given.
+      return $x;
+    } // else. Embed the field value in a field array.
     $field_array = array (
       'column_name'   => $column_name,
       'row_name'      => $row_name,
-      'value'         => $value,
-      'display_value' => $value
+      'value'         => $x,
+      'display_value' => $x
     );
     if (isset ($field ['field_id'])) {
       $field_array ['field_id'] = $field ['$field_id'];
     }
-    return $field_array ();
+    return $field_array;
   } // else.
+  // III. Return the default default value.
   return '';
 }
 
