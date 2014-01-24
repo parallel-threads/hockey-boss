@@ -1,0 +1,6 @@
+name = EditTable
+description = "Extends the Simple Table API to allow users to create editable tables."
+package = SimpleTable
+core = 7.x
+dependencies[] = simple_table
+files[] = edit_table.module

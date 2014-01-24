@@ -1,0 +1,6 @@
+Edit Table Module Readme
+========================
+
+The Edit Table module extends the Simple Table module. It provides an
+API that users can use to create editable tables - I.E. tables with
+editable fields.
