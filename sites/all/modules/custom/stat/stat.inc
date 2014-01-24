@@ -210,12 +210,36 @@ function stat_get_subject ($node) {
 }
 
 /**
+  @brief Accepts a stat node and a subject id and updates the stat value.
+  @param $node (object) the stat node.
+  @param $subject_id (string) the subject entity id.
+*/
+function stat_set_subject ($node, $subject_id) {
+  $node->{$node->type . '_subject'}['und'][0]['target_id'] = $subject_id;
+  return $node;
+} 
+
+/**
   @brief Accepts a stat node and returns its date.
   @param $node (object) the stat node.
   @return (string) the date.
 */
 function stat_get_date ($node) {
   return $node->{$node->type . '_date'}['und'][0]['value'];
+}
+
+/**
+  @brief Accepts a stat node and a date and updates the date value.
+  @param $node (object) the stat node.
+  @param $date (string) the date value.
+  @return (object) the modified stat node.
+*/
+function stat_set_date ($node, $date) {
+  $node->{$node->type . '_date'}['und'][0] = array (
+    'value'     => $date,
+    'date_type' => 'date'
+  );
+  return $node;
 }
 
 /**
