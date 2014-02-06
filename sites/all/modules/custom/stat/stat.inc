@@ -42,6 +42,17 @@ function stat_delete_vocabularies () {
   }
 }
 
+/// Returns the Stat Unit vocabulary.
+function stat_get_unit_vocab () {
+  return taxonomy_vocabulary_machine_name_load ('stat_unit');
+}
+
+/// Returns the Stat Unit vocabulary terms.
+function stat_get_unit_terms () {
+  $vocab = stat_get_unit_vocab ();
+  return taxonomy_get_tree ($vocab->vid);
+}
+
 // ----- II. Content Types -----
 
 /**
@@ -292,4 +303,20 @@ function stat_get_unit_term ($node) {
 function stat_get_unit ($node) {
   $term = stat_get_unit_term ($node);
   return is_null ($term) ? '' : $term->name;
+}
+
+/**
+  @brief Accepts a stat node and a unit term id and sets the unit term id.
+  @param $node (object) the stat node.
+  @param $tid (int) the term id.
+  @return (object) the modified stat node.
+*/
+function stat_set_unit_tid ($node, $tid) {
+  $node->{$node->type . '_unit'}['und'][0]['tid'] = $tid;
+  return $node;
+}
+
+function stat_unset_unit_tid ($node) {
+  $node->{$node->type . '_unit'}['und'] = array ();
+  return $node;
 }
