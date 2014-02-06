@@ -34,6 +34,7 @@
                'weight'      => <weight>),                      // required.
              ...
            ),
+           'submit'      => array (<callback>),                 // optional. 
            'sortable'    => <true|false>,                       // optional (default true). Whether or not users may change the sorting.
            'sort_column' => <column name>,                      // optional. (may be 'none').
            'label_column_name' => <column name>,                // optional. The name of the column that holds row labels.
@@ -145,14 +146,23 @@ function _simple_table_get_all_column_names_sorted ($data) {
     fields array.
 */
 function _simple_table_get_field ($data, $column_name, $row_name) {
-  // I. Return the specified field value if given.
+  // I. Return the row name if the given column is marked as the label column.
+  if (isset ($data ['label_column_name']) && $data ['label_column_name'] == $column_name) {
+    return array (
+      'column_name'   => $column_name,
+      'row_name'      => $row_name,
+      'value'         => $row_name,
+      'display_value' => $row_name
+    );
+  }
+  // II. Return the specified field value if given.
   foreach ($data ['fields'] as $field) {
     if ($field ['column_name'] === $column_name &&
         $field ['row_name']    === $row_name) {
       return $field;
     }
   }
-  // II. Calculate and return the default field value if a default value function is given.
+  // III. Calculate and return the default field value if a default value function is given.
   if (isset ($data ['default_field_value_function'])) {
     // A. Load an include file if given.
     if (isset ($data ['module'])) {
@@ -165,6 +175,12 @@ function _simple_table_get_field ($data, $column_name, $row_name) {
     }
     // C. Call the default field value function with the generated arguments.
     $x = call_user_func_array ($data ['default_field_value_function'], $arguments);
+    watchdog (
+      'simple_table',
+      '[_simple_table_get_field] x: <pre>@x</pre>',
+      array (
+        '@x' => print_r ($x, true)
+    ));
 
     // D. Return the generated field value.
     if (is_array ($x)) {
@@ -182,7 +198,7 @@ function _simple_table_get_field ($data, $column_name, $row_name) {
     }
     return $field_array;
   } // else.
-  // III. Return the default default value.
+  // IV. Return the default default value.
   return '';
 }
 
@@ -330,7 +346,13 @@ function simple_table_form ($form, $form_state, $data = null) {
   $unique_form_id = drupal_html_id ($form_state ['build_info']['form_id']);
 
   $table = simple_table ($data);
-
+  watchdog (
+    'simple_table',
+    '[simple_table_form] data: <pre>@data</pre> table: <pre>@table</pre>',
+    array (
+      '@data' => print_r ($data, true),
+      '@table' => print_r ($table, true)
+  ));
   $form = array (
     '#prefix' => '<div id="' . $unique_form_id . '">',
     '#suffix' => '</div>',
@@ -422,6 +444,13 @@ function simple_table_form ($form, $form_state, $data = null) {
       );
       $field_offset ++;
     }
+  }
+  if ($data ['submit']) {
+    $form ['submit'] = array (
+      '#type'   => 'submit',
+      '#value'  => 'Update',
+      '#submit' => $data ['submit']
+    );
   }
   return $form;
 }
