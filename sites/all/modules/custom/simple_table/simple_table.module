@@ -175,12 +175,6 @@ function _simple_table_get_field ($data, $column_name, $row_name) {
     }
     // C. Call the default field value function with the generated arguments.
     $x = call_user_func_array ($data ['default_field_value_function'], $arguments);
-    watchdog (
-      'simple_table',
-      '[_simple_table_get_field] x: <pre>@x</pre>',
-      array (
-        '@x' => print_r ($x, true)
-    ));
 
     // D. Return the generated field value.
     if (is_array ($x)) {
@@ -346,13 +340,7 @@ function simple_table_form ($form, $form_state, $data = null) {
   $unique_form_id = drupal_html_id ($form_state ['build_info']['form_id']);
 
   $table = simple_table ($data);
-  watchdog (
-    'simple_table',
-    '[simple_table_form] data: <pre>@data</pre> table: <pre>@table</pre>',
-    array (
-      '@data' => print_r ($data, true),
-      '@table' => print_r ($table, true)
-  ));
+
   $form = array (
     '#prefix' => '<div id="' . $unique_form_id . '">',
     '#suffix' => '</div>',
