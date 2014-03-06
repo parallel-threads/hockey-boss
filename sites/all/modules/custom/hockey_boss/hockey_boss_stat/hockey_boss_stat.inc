@@ -14,6 +14,20 @@ define ('hockey_boss_stat_PGS_TYPE', 'hockey_boss_stat_pgs');
 /// The Player Performance Stat type name.
 define ('hockey_boss_stat_PPS_TYPE', 'hockey_boss_stat_pps');
 
+function hockey_boss_stat_pps_type () {
+  return 
+    array (
+      'name'          => 'Player Performance Stat',
+      'machine_name'  => hockey_boss_stat_PPS_TYPE,
+      'description'   => 'Represents player performance statistics.',
+      'subject_type'  => hockey_boss_PLAYER_PROFILE_TYPE,
+      'stats'         => array (
+        array ('name' => 'Squats'),
+        array ('name' => 'Sprint',
+               'unit' => 'Secs')
+  ));
+}
+
 /**
   @brief Returns an array listing the stat types
     defined by this module.
@@ -23,19 +37,17 @@ function hockey_boss_stat_get_stat_types () {
   module_load_include ('inc', 'hockey_boss');
 
   return array (
-    hockey_boss_stat_PGS_TYPE => array (
+    array (
       'name'          => 'Player Game Stat',
+      'machine_name'  => hockey_boss_stat_PGS_TYPE,
       'description'   => 'Represents player game statistics.',
       'subject_type'  => hockey_boss_PLAYER_PROFILE_TYPE,
       'create_fields' => array (
         'module'   => 'hockey_boss_stat',
         'callback' => 'hockey_boss_stat_create_pgs_fields'
     )),
-    hockey_boss_stat_PPS_TYPE => array (
-      'name'          => 'Player Performance Stat',
-      'description'   => 'Represents player performance statistics.',
-      'subject_type'  => hockey_boss_PLAYER_PROFILE_TYPE
-  ));
+    hockey_boss_stat_pps_type ()
+  );
 }
 
 /**

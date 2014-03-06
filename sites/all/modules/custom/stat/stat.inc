@@ -109,8 +109,9 @@ function stat_create_stat_type ($machine_name, $name, $description, $subject_typ
   @note The definition array must have the
     following structure:
     array (
-      <machine name> => array (
+      array (
         'name'          => <human readable stat type name>, // required.
+        'machine_name'  => <machine name>,                  // required.
         'description'   => <a stat type description>,       // required.
         'create_fields' => array (                          // optional.
           'module'   => <the name of the module whose include file will be loaded>, // optional.
@@ -120,7 +121,9 @@ function stat_create_stat_type ($machine_name, $name, $description, $subject_typ
     )
 */
 function stat_create_stat_types ($defs) {
-  foreach ((array) $defs as $machine_name => $def) {
+  foreach ((array) $defs as $def) {
+    $machine_name = $def ['machine_name'];
+
     // I. Create the content type and core fields.
     $type = stat_create_stat_type ($machine_name, $def ['name'], $def ['description']);
 
@@ -144,6 +147,96 @@ function stat_delete_stat_types ($defs) {
 }
 
 // ----- III. Node Operations -----
+
+/**
+  @brief Accepts a information about a stat and returns a node object with the core fields set.
+  @param $def  (array) the stat type definition array.
+  @param $name (string) the human readable stat name.
+  @param $value (string) the stat value.
+  @param $date  (string) the stat date.
+  @param $subject (int) the stat subject.
+  @return (node) the stat node with core fields set.
+*/
+function stat_create_stat ($def, $name, $value, $date, $subject) {
+
+  // I. Check the stat parameters.
+
+  // a. check stat name.
+  $valid_name = false;
+  $unit_name = null;
+  foreach ($def ['stats'] as $stat_def) {
+    if ($stat_def ['name'] === $name) {
+      $valid_name = true;
+      if (isset ($stat_def ['unit']) && $stat_def ['unit']) {
+        $unit_name = $stat_def ['unit'];
+      }
+      break;
+    }
+  }
+  $machine_name = $def ['machine_name'];
+  if (!$valid_name) {
+    return watchdog (
+      'stat',
+      "[stat_create_stat] Error: An error occured while trying to create a stat. None of the declared stat names for the given stat type '$machine_name' matches the given stat name '$name'.",
+      array (),
+      WATCHDOG_ERROR
+    );
+  }
+
+  // b. check subject.
+  $subject_type = $def ['subject_type'];
+  $subjects = entity_load ($subject_type, $subject);
+  watchdog (
+    'stat',
+    '[stat_create_stat] subject type: @subject_type subject: @subject subjects: <pre>@subjects</pre>',
+    array (
+      '@subject_type' => $subject_type,
+      '@subject'      => $subject,
+      '@subjects'     => print_r ($subjects, true)
+  ));
+/*
+  if (empty ($subjects)) {
+    return watchdog (
+      'stat',
+      "[stat_create_stat] Error: An error occured while trying to create a new stat. The subject id '$subject' appears to be invalid. None of the entities that have the given type, '$subject_type', have the given id.",
+      array (),
+      WATCHDOG_ERROR
+    );
+  }
+*/
+  return;
+
+  // III. create the stat node object.
+  $stat = new stdClass ();
+  $stat->type = $machine_name;
+  node_object_prepare ($stat);
+  $stat->title = $name;
+  stat_set_value    ($stat, $value);
+  stat_set_date     ($stat, $date);
+  stat_set_subject  ($stat, $subject);
+
+  if ($unit_name) {
+    // a. retrieve the stat unit term.
+    $unit_term  = null;
+    $unit_vocab = stat_get_unit_vocab ();
+    $unit_terms = taxonomy_get_term_by_name ($unit_name, 'stat_unit');
+    if (empty ($unit_terms)) {
+      // create the stat term.
+      $unit_term = new stdClass ();
+      $unit_term->vid = $unit_vocab->vid;
+      $unit_term->name = $unit_name;
+      taxonomy_term_save ($unit_term);
+    } else {
+      $unit_term = $unit_terms [0];
+    }
+
+    // b. set the stat unit.
+    stat_set_unit_tid ($stat, $unit_term->tid);
+  }
+
+  // IV. return the stat node object so that type-specific fields can be set.
+  return $stat;
+}
 
 /*
   @brief Returns the node id of every node that has the given type.

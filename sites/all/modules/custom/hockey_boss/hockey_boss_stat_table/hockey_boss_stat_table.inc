@@ -9,9 +9,6 @@
     Player Performance Stat table.
 */
 function hockey_boss_stat_table_pps_access ($user) {
-  // return true;
-  // return false;
-
   return ($user->uid == 1); 
 }
 
@@ -66,6 +63,7 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
   }
 
   // II. Create a stat node to represent the missing stat.
+
   $stat = new stdClass ();
   $stat->type = hockey_boss_stat_PPS_TYPE;
   node_object_prepare ($stat);
@@ -74,6 +72,23 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
   $stat = stat_set_date ($stat, $field_stat_year . '-01-01T12:00:00');
   $stat = stat_set_subject ($stat, $player_nid);
   node_save ($stat);
+
+
+  $stat_test = stat_create_stat (
+    hockey_boss_stat_pps_type (),
+    $column_name,
+    '0',
+    $field_stat_year . '-01-01T12:00:00',
+    $player_nid
+ );
+/*
+  watchdog (
+    'hockey_boss_stat_table',
+    '[hockey_boss_stat_table_pps_default_field_value] stat: <pre>@stat</pre>',
+    array (
+      '@stat' => print_r ($stat_test, true)
+  ));
+*/
   if ($editable) {
     return array (
       'value' => array (
@@ -151,12 +166,40 @@ function hockey_boss_stat_table_pps ($player) {
         'weight'      => 10
       ),
       array (
-        'column_name' => t ('Squats'),
+        'column_name' => t ('Goals'),
         'weight'      => 9
       ),
       array (
-        'column_name' => t ('Sprint'),
+        'column_name' => t ('Assists'),
         'weight'      => 8
+      ),
+      array (
+        'column_name' => t ('Shots'),
+        'weight'      => 7
+      ),
+      array (
+        'column_name' => t ('Shots On Goal'),
+        'weight'      => 6
+      ),
+      array (
+        'column_name' => t ('Shots Against'),
+        'weight'      => 5
+      ),
+      array (
+        'column_name' => t ('Shots Against On Goal'),
+        'weight'      => 4
+      ),
+      array (
+        'column_name' => t ('Penalties'),
+        'weight'      => 3
+      ),
+      array (
+        'column_name' => t ('Face-Offs'),
+        'weight'      => 2
+      ),
+      array (
+        'column_name' => t ('+/-'),
+        'weight'      => 1
     )), 
     'submit'                        => $editable ? array ('hockey_boss_stat_table_pps_submit') : null,
     'fields'                        => array (),
@@ -164,6 +207,92 @@ function hockey_boss_stat_table_pps ($player) {
     'sort_column'                   => t ('Year'),
     'label_column_name'             => t ('Year'),
     'default_field_value_function'  => 'hockey_boss_stat_table_pps_default_field_value',
+    'default_field_value_arguments' => array ($player->nid, $editable, 5)
+  ); 
+  $form = drupal_get_form ('simple_table_form', $data);
+  return $form;
+}
+
+function hockey_boss_stat_table_pfs ($player) {
+  module_load_include ('inc', 'hockey_boss');
+  module_load_include ('inc', 'hockey_boss_stat');
+  module_load_include ('inc', 'stat');
+
+  $stats = stat_get_stats_by_subject (hockey_boss_stat_PFS_TYPE, $player->nid);
+
+  global $user;
+  $editable = hockey_boss_stat_table_pfs_access ($user);
+
+  $data = array (
+    'module'  => 'hockey_boss_stat_table',
+    'rows'    => array ('2014', '2013'),
+    'columns' => array (
+      array (
+        'column_name' => t ('Year'),
+        'weight'      => 10
+      ),
+      array (
+        'column_name' => t ('Circles Without Puck'),
+        'weight'      => 9
+      ),
+      array (
+        'column_name' => t ('Circles With Puck'),
+        'weight'      => 8
+      ),
+      array (
+        'column_name' => t ('Russian Circles Without Puck'),
+        'weight'      => 7
+      ),
+      array (
+        'column_name' => t ('Russian Circles With Puck'),
+        'weight'      => 6
+      ),
+      array (
+        'column_name' => t ('Full Ice Sprint'),
+        'weight'      => 5
+      ),
+      array (
+        'column_name' => t ('Suicides'),
+        'weight'      => 4
+      ),
+      array (
+        'column_name' => t ('Push-ups'),
+        'weight'      => 3
+      ),
+      array (
+        'column_name' => t ('Sit-ups'),
+        'weight'      => 2
+      ),
+      array (
+        'column_name' => t ('Pull-ups'),
+        'weight'      => 1
+      ),
+      array (
+        'column_name' => t ('Benchpress'),
+        'weight'      => 0
+      ),
+      array (
+        'column_name' => t ('Legpress'),
+        'weight'      => -1
+      ),
+      array (
+        'column_name' => t ('Squat'),
+        'weight'      => -2
+      ),
+      array (
+        'column_name' => t ('60 Yard Dash'),
+        'weight'      => -3
+      ),
+      array (
+        'column_name' => t ('Mile Time'), 
+        'weight'      => -4
+    )), 
+    'submit'                        => $editable ? array ('hockey_boss_stat_table_pfs_submit') : null,
+    'fields'                        => array (),
+    'sortable'                      => !$editable,
+    'sort_column'                   => t ('Year'),
+    'label_column_name'             => t ('Year'),
+    'default_field_value_function'  => 'hockey_boss_stat_table_pfs_default_field_value',
     'default_field_value_arguments' => array ($player->nid, $editable, 5)
   ); 
   $form = drupal_get_form ('simple_table_form', $data);
