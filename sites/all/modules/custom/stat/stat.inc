@@ -144,6 +144,9 @@ function stat_create_stat_types ($defs) {
 */
 function stat_delete_stat_types ($defs) {
   stat_delete_node_types (array_keys ((array) $defs));
+  foreach ($defs as $def) {
+    node_type_delete ($def ['machine_name']);
+  }
 }
 
 // ----- III. Node Operations -----
@@ -194,16 +197,6 @@ function stat_create_stat ($def, $name, $value, $date, $subject) {
       '@subject'      => $subject,
       '@subjects'     => print_r ($subjects, true)
   ));
-/*
-  if (empty ($subjects)) {
-    return watchdog (
-      'stat',
-      "[stat_create_stat] Error: An error occured while trying to create a new stat. The subject id '$subject' appears to be invalid. None of the entities that have the given type, '$subject_type', have the given id.",
-      array (),
-      WATCHDOG_ERROR
-    );
-  }
-*/
   return;
 
   // III. create the stat node object.

@@ -75,7 +75,7 @@
 */
 function _simple_table_get_all_row_names ($data) {
   $row_names = isset ($data ['rows']) ? $data ['rows'] : array ();
-  foreach ($data ['fields'] as $field) {
+  foreach ((array) $data ['fields'] as $field) {
     if (!in_array ($field ['row_name'], $row_names)) {
       $row_names [] = $field ['row_name'];
     }
@@ -89,7 +89,7 @@ function _simple_table_get_all_row_names ($data) {
 */
 function _simple_table_get_all_columns ($data) {
   $columns = isset ($data ['columns']) ? $data ['columns'] : array ();
-  foreach ($data ['fields'] as $field) {
+  foreach ((array) $data ['fields'] as $field) {
     $match = false;
     foreach ($columns as $column) {
       if ($column ['column_name'] === $field ['column_name']) {
