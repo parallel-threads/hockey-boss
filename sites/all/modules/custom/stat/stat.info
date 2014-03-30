@@ -1,5 +1,5 @@
 name = Stat
-description = "Defines the Stat content type and the Units vocabulary."
+description = "Defines the Stat API."
 core = 7.x
 dependencies[] = date
 dependencies[] = entityreference

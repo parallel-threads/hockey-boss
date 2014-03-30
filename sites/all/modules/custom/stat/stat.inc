@@ -5,71 +5,136 @@
     Stat content type and the Unit vocabulary.
 */
 
-// ----- I. Vocabularies -----
+// ----- I. Stat Types -----
 
-/// Returns an array listing the MHealthDB Contributed vocabularies.
-function stat_vocabularies () {
+/**
+  @brief Creates a stat type.
+  @param $stat_type (array) a stat type.
+  @note Stat type arrays must have the following structure:
+    array (
+      'description'       => <a stat type description>
+      'node_type'         => <the machine name of the node type used to represent stats>
+      'subject_node_type' => <the machine name of the node type referenced by the subject field>
+      'unit'              => <the name of the units of measure used to measure stat values>
+    )
+*/
+function stat_create_stat_type ($stat_type) {
+  drupal_write_record ('stat_stat_type', $stat_type);
+};
+
+/**
+  @brief Returns a database query object that will retrieve stat type records.
+  @return (SelectQuery) the query object.
+*/
+function stat_stat_type_select () {
+  return db_select ('{stat_stat_type}', 'tbl')
+         ->fields  ('tbl', array ('name', 'description', 'node_type', 'subject_node_type', 'unit'));
+}
+
+/**
+  @brief Accepts a stat type database record and returns a stat type array.
+  @param $record (object) the record.
+  @return (array) the stat type.
+*/
+function stat_get_stat_type_from_record ($record) {
   return array (
-    'stat_unit' => array (
-      'name'         => 'Unit',
-      'machine_name' => 'stat_unit',
-      'description'  => 'Standard measuring units used for statistics.'
-  ));
+    'name'              => $record->name,
+    'description'       => $record->description,
+    'node_type'         => $record->node_type,
+    'subject_node_type' => $record->subject_node_type,
+    'unit'              => $record->unit
+  );
 }
 
 /**
-  @brief Creates a new vocabulary.
-  @param $vocab (array) a vocabulary array.
+  @brief Accepts stat type database records and returns the stat type arrays.
+  @param $records (DatabaseConnection_mysql)
+  @return (array) the stat types.
 */
-function _stat_create_vocabulary ($vocab) {
-  if (!taxonomy_vocabulary_machine_name_load ($vocab ['machine_name'])) {
-    taxonomy_vocabulary_save ((object) $vocab);
+function stat_get_stat_types_from_records ($records) {
+  $stat_types = array ();
+  foreach ($records as $record) {
+    $stat_types [] = stat_get_stat_type_from_record ($record);
   }
+  return $stat_types;
 }
-
-/// Creates the Stat vocabularies.
-function stat_create_vocabularies () {
-  foreach (stat_vocabularies () as $vocab) {
-    _stat_create_vocabulary ($vocab);
-  }
-}
-
-/// Deletes the Stat vocabularies.
-function stat_delete_vocabularies () {
-  foreach (array_keys (stat_vocabularies ()) as $machine_name) {
-    $vocab = taxonomy_vocabulary_machine_name_load ($machine_name);
-    taxonomy_vocabulary_delete ($vocab->vid);
-  }
-}
-
-/// Returns the Stat Unit vocabulary.
-function stat_get_unit_vocab () {
-  return taxonomy_vocabulary_machine_name_load ('stat_unit');
-}
-
-/// Returns the Stat Unit vocabulary terms.
-function stat_get_unit_terms () {
-  $vocab = stat_get_unit_vocab ();
-  return taxonomy_get_tree ($vocab->vid);
-}
-
-// ----- II. Content Types -----
 
 /**
-  @brief Defines a stat type.
-  @param $machine_name (string) the stat type machine name.
-  @param $name (string) the stat type name.
-  @param $description (string) a description of the stat type.
-  @return (object) a stat content type.
+  @brief Returns all of the stat types.
+  @return (array) the stat types.
 */
-function stat_get_stat_type ($machine_name, $name, $description) {
+function stat_get_all_stat_types () {
+  return stat_get_stat_types_from_records (
+    stat_stat_type_select ()
+    ->execute ());
+}
+
+/**
+  @brief Returns the stat types that use the given node type to represent stats.
+  @param $node_type (string) the node type.
+  @return (array) the stat types.
+*/
+function stat_get_stat_types_by_node_type ($node_type) {
+  return stat_get_stat_types_from_records (
+    stat_stat_type_select ()
+    ->condition ('subject_node_type', $node_type)
+    ->execute   ());
+}
+
+/**
+  @brief Implements hook_node_type_delete ().
+  @details
+    Deletes the stat type associated with the node
+    type that is being deleted.
+*/
+function stat_node_type_delete ($info) {
+  stat_delete_stat_types (stat_get_stat_types_by_node_type ($info->type));
+}
+
+/**
+  @brief Deletes the given stat type.
+  @param $stat_type (array) the stat type.
+*/
+function stat_delete_stat_type ($stat_type) {
+  // I. Delete the stat type's node type and stat nodes.
+  stat_delete_stat_type_node_type ($stat_type);
+
+  // II. Delete the stat type's database record.
+  db_delete ('{stat_stat_type}')
+  ->condition ('name', $stat_type ['node_type'])
+  ->execute   ();
+}
+
+/**
+  @brief Deletes the given stat types.
+  @param $stat_types (array) the stat types.
+*/
+function stat_delete_stat_types ($stat_types) {
+  foreach ((array) $stat_types as $stat_type) {
+    stat_delete_stat_type ($stat_type);
+  }
+}
+
+/// Deletes all of the stat types.
+function stat_delete_all_stat_types () {
+  stat_delete_stat_types (stat_get_all_stat_types ());
+}
+
+// ----- II. Stat Type Node Types -----
+
+/**
+  @brief Defines a stat type's node type.
+  @param $stat_type (array) a stat type.
+  @return (object) a content type.
+*/
+function stat_get_stat_type_node_type ($stat_type) {
   $t = get_t (); 
   return node_type_set_defaults (
     array (
-      'type'        => $machine_name,
-      'name'        => $t ($name),
-      'description' => $t ($description),
-      'help'        => $t ($description),
+      'type'        => $stat_type ['node_type'],
+      'name'        => t ($stat_type ['name']),
+      'description' => t ($stat_type ['description']),
+      'help'        => t ($stat_type ['description']),
       'has_title'   => true,
       'base'        => 'node_content',
       'custom'      => false,
@@ -81,154 +146,81 @@ function stat_get_stat_type ($machine_name, $name, $description) {
 
 /**
   @brief Creates a stat type.
-  @details This function creates a stat type and defines the core stat fields.
-  @param $machine_name (string) the stat type machine name.
-  @param $name (string) the stat type name.
-  @param $description (string) a description of the stat type.
-  @param $subject_type (string) the machine name of the entity type referenced by the subject field.
+  @details This function creates a stat type node type and defines the core stat fields.
+  @param $stat_type (array) the stat type.
 */
-function stat_create_stat_type ($machine_name, $name, $description, $subject_type = null) {
+function stat_create_stat_type_node_type ($stat_type) {
   // I. Create the content type.
-  $type = stat_get_stat_type ($machine_name, $name, $description);
+  $type = stat_get_stat_type_node_type ($stat_type);
   node_type_save ($type);
 
   // II. Create core fields.
-  simple_field_create_textfield        ($type, $machine_name . '_value',   t ('Value'));
-  simple_field_create_term_reference   ($type, $machine_name . '_unit',    t ('Units'),   array ('stat_unit'), 1);
-  simple_field_create_entity_reference ($type, $machine_name . '_subject', t ('Subject'), is_null ($subject_type) ? array () : array ($subject_type), 'node', 1);
-  simple_field_create_date_field       ($type, $machine_name . '_date',    t ('Date'));
+  simple_field_create_textfield        ($type, $stat_type ['node_type'] . '_value',   t ('Value'));
+  simple_field_create_entity_reference ($type, $stat_type ['node_type'] . '_subject', t ('Subject'), is_null ($stat_type ['subject_node_type']) ? array () : array ($stat_type ['subject_node_type']), 'node', 1);
+  simple_field_create_date_field       ($type, $stat_type ['node_type'] . '_date',    t ('Date'));
 
-  // III. Return the type definition.
+  // III. Call hook_stat_create_<stat_type_node_type>_stat_type_node_type () to add custom fields.
+  module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_type_node_type', $type);
+
+  // IV. Return the type definition.
   return $type;
 }
 
 /**
-  @brief Accepts a set of stat type definitions and
+  @brief Accepts a set of stat types and
     creates content types that represent each.
-  @param $defs (array) the stat type definitions.
-  @note The definition array must have the
-    following structure:
-    array (
-      array (
-        'name'          => <human readable stat type name>, // required.
-        'machine_name'  => <machine name>,                  // required.
-        'description'   => <a stat type description>,       // required.
-        'create_fields' => array (                          // optional.
-          'module'   => <the name of the module whose include file will be loaded>, // optional.
-          'callback' => <the callback function that accepts the type array and creates the type-specific fields> // required.
-      )),
-      ...
-    )
+  @param $stat_types (array) the stat types.
 */
-function stat_create_stat_types ($defs) {
-  foreach ((array) $defs as $def) {
-    $machine_name = $def ['machine_name'];
-
-    // I. Create the content type and core fields.
-    $type = stat_create_stat_type ($machine_name, $def ['name'], $def ['description']);
-
-    // II. Create the type-specific fields.
-    if ($def ['create_fields']) {
-      if (isset ($def ['create_fields']['module'])) {
-        module_load_include ('inc', $def ['create_fields']['module']);
-      }
-      call_user_func ($def ['create_fields']['callback'], $type);
-    }
+function stat_create_stat_types_node_types ($stat_types) {
+  foreach ((array) $stat_types as $stat_type) {
+    stat_create_stat_type_node_type ($stat_type);
   }
 }
 
 /**
-  @brief Accepts a set of stat type definitions and deletes them.
-  @param $defs (array) the stat type definitions.
-  @see stat_create_stat_types () for details about the structure of the stat type definitions array.
+  @brief Accepts a stat type and deletes its node type.
+  @param $stat_type (array) the stat type.
 */
-function stat_delete_stat_types ($defs) {
-  stat_delete_node_types (array_keys ((array) $defs));
-  foreach ($defs as $def) {
-    node_type_delete ($def ['machine_name']);
+function stat_delete_stat_type_node_type ($stat_type) {
+  stat_delete_node_type ($stat_type ['node_type']);
+}
+
+/**
+  @brief Accepts a set of stat types and deletes them.
+  @param $stat_types (array) the stat types.
+*/
+function stat_delete_stat_types_node_types ($stat_types) {
+  foreach ((array) $stat_types as $stat_type) {
+    stat_delete_stat_type_node_type ($stat_type);
   }
 }
 
-// ----- III. Node Operations -----
+// ----- III. Stat Nodes -----
 
 /**
   @brief Accepts a information about a stat and returns a node object with the core fields set.
-  @param $def  (array) the stat type definition array.
+  @param $stat_type (array) the stat type.
   @param $name (string) the human readable stat name.
   @param $value (string) the stat value.
   @param $date  (string) the stat date.
   @param $subject (int) the stat subject.
   @return (node) the stat node with core fields set.
 */
-function stat_create_stat ($def, $name, $value, $date, $subject) {
-
-  // I. Check the stat parameters.
-
-  // a. check stat name.
-  $valid_name = false;
-  $unit_name = null;
-  foreach ($def ['stats'] as $stat_def) {
-    if ($stat_def ['name'] === $name) {
-      $valid_name = true;
-      if (isset ($stat_def ['unit']) && $stat_def ['unit']) {
-        $unit_name = $stat_def ['unit'];
-      }
-      break;
-    }
-  }
-  $machine_name = $def ['machine_name'];
-  if (!$valid_name) {
-    return watchdog (
-      'stat',
-      "[stat_create_stat] Error: An error occured while trying to create a stat. None of the declared stat names for the given stat type '$machine_name' matches the given stat name '$name'.",
-      array (),
-      WATCHDOG_ERROR
-    );
-  }
-
-  // b. check subject.
-  $subject_type = $def ['subject_type'];
-  $subjects = entity_load ($subject_type, $subject);
-  watchdog (
-    'stat',
-    '[stat_create_stat] subject type: @subject_type subject: @subject subjects: <pre>@subjects</pre>',
-    array (
-      '@subject_type' => $subject_type,
-      '@subject'      => $subject,
-      '@subjects'     => print_r ($subjects, true)
-  ));
-  return;
-
-  // III. create the stat node object.
+function stat_create_stat_node ($stat_type, $name, $value, $date, $subject) {
+  // I. Create the stat node and set the core fields.
   $stat = new stdClass ();
-  $stat->type = $machine_name;
+  $stat->type = $stat_type ['node_type'];
   node_object_prepare ($stat);
   $stat->title = $name;
   stat_set_value    ($stat, $value);
   stat_set_date     ($stat, $date);
   stat_set_subject  ($stat, $subject);
 
-  if ($unit_name) {
-    // a. retrieve the stat unit term.
-    $unit_term  = null;
-    $unit_vocab = stat_get_unit_vocab ();
-    $unit_terms = taxonomy_get_term_by_name ($unit_name, 'stat_unit');
-    if (empty ($unit_terms)) {
-      // create the stat term.
-      $unit_term = new stdClass ();
-      $unit_term->vid = $unit_vocab->vid;
-      $unit_term->name = $unit_name;
-      taxonomy_term_save ($unit_term);
-    } else {
-      $unit_term = $unit_terms [0];
-    }
+  // II. Call hook_stat_create_<stat_type_node_type>_stat_node () to set custom field values.
+  module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_node', $stat);
 
-    // b. set the stat unit.
-    stat_set_unit_tid ($stat, $unit_term->tid);
-  }
-
-  // IV. return the stat node object so that type-specific fields can be set.
-  return $stat;
+  // III. Saves the newly created stat node.
+  return node_save ($stat);
 }
 
 /*
@@ -272,16 +264,6 @@ function stat_delete_node_type ($type) {
 }
 
 /**
-  @brief Accepts a list of node types and deletes them and their nodes.
-  @param $types (array) the node types.
-*/
-function stat_delete_node_types ($types) {
-  foreach ((array) $types as $type) {
-    stat_delete_node_type ($type);
-  }
-}
-
-/**
   @brief Accepts an entity id and returns those
     stats that reference the entity that has the
     given id.
@@ -313,7 +295,6 @@ function stat_get_subject ($node) {
 */
 function stat_set_subject ($node, $subject_id) {
   $node->{$node->type . '_subject'}['und'][0]['target_id'] = $subject_id;
-  return $node;
 } 
 
 /**
@@ -329,14 +310,12 @@ function stat_get_date ($node) {
   @brief Accepts a stat node and a date and updates the date value.
   @param $node (object) the stat node.
   @param $date (string) the date value.
-  @return (object) the modified stat node.
 */
 function stat_set_date ($node, $date) {
   $node->{$node->type . '_date'}['und'][0] = array (
     'value'     => $date,
     'date_type' => 'date'
   );
-  return $node;
 }
 
 /**
@@ -352,57 +331,7 @@ function stat_get_value ($node) {
   @brief Accepts a stat node and a value and updates the stats value.
   @param $node (object) the stat node.
   @param $value (string) the stat value.
-  @return (object) the modified stat node.
-  @note The stat object will need to be saved using node_save after this operation is performed.
 */
 function stat_set_value ($node, $value) {
   $node->{$node->type . '_value'}['und'][0]['value'] = $value;
-  return $node;
-}
-
-/**
-  @brief Accepts a stat node and returns its unit's term id.
-  @param $node (object) the stat node.
-  @return (int) the unit term id.
-*/
-function stat_get_unit_tid ($node) {
-  $field_name = $node->type . '_unit';
-  $field = $node->{$field_name};
-  return isset ($field ['und']) ? $field ['und'][0]['tid'] : null;
-}
-
-/**
-  @brief Accepts a stat node and returns its unit's term.
-  @param $node (object) the stat node.
-  @return (object) the unit term.
-*/
-function stat_get_unit_term ($node) {
-  $tid = stat_get_unit_tid ($node);
-  return is_null ($tid) ? null : taxonomy_term_load ($tid);
-}
-
-/**
-  @brief Accepts a stat node and returns its unit's name.
-  @param $node (object) the stat node.
-  @return (string) the unit name.
-*/
-function stat_get_unit ($node) {
-  $term = stat_get_unit_term ($node);
-  return is_null ($term) ? '' : $term->name;
-}
-
-/**
-  @brief Accepts a stat node and a unit term id and sets the unit term id.
-  @param $node (object) the stat node.
-  @param $tid (int) the term id.
-  @return (object) the modified stat node.
-*/
-function stat_set_unit_tid ($node, $tid) {
-  $node->{$node->type . '_unit'}['und'][0]['tid'] = $tid;
-  return $node;
-}
-
-function stat_unset_unit_tid ($node) {
-  $node->{$node->type . '_unit'}['und'] = array ();
-  return $node;
 }
