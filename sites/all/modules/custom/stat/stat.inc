@@ -12,15 +12,32 @@
   @param $stat_type (array) a stat type.
   @note Stat type arrays must have the following structure:
     array (
+      'name'              => <the name of the stat type>
       'description'       => <a stat type description>
       'node_type'         => <the machine name of the node type used to represent stats>
       'subject_node_type' => <the machine name of the node type referenced by the subject field>
-      'unit'              => <the name of the units of measure used to measure stat values>
     )
 */
 function stat_create_stat_type ($stat_type) {
+  watchdog (
+    'stat',
+    '[stat_create_stat_type] stat type: <pre>@stat_type</pre>',
+    array (
+      '@stat_type' => print_r ($stat_type, true)
+  ));
   drupal_write_record ('stat_stat_type', $stat_type);
+  stat_create_stat_type_node_type ($stat_type);
 };
+
+/**
+  @brief Creates the given stat types.
+  @param $stat_types (array) the stat types.
+*/
+function stat_create_stat_types ($stat_types) {
+  foreach ((array) $stat_types as $stat_type) {
+    stat_create_stat_type ($stat_type);
+  }
+}
 
 /**
   @brief Returns a database query object that will retrieve stat type records.
@@ -28,7 +45,7 @@ function stat_create_stat_type ($stat_type) {
 */
 function stat_stat_type_select () {
   return db_select ('{stat_stat_type}', 'tbl')
-         ->fields  ('tbl', array ('name', 'description', 'node_type', 'subject_node_type', 'unit'));
+         ->fields  ('tbl', array ('name', 'description', 'node_type', 'subject_node_type'));
 }
 
 /**
@@ -41,8 +58,7 @@ function stat_get_stat_type_from_record ($record) {
     'name'              => $record->name,
     'description'       => $record->description,
     'node_type'         => $record->node_type,
-    'subject_node_type' => $record->subject_node_type,
-    'unit'              => $record->unit
+    'subject_node_type' => $record->subject_node_type
   );
 }
 
@@ -96,12 +112,19 @@ function stat_node_type_delete ($info) {
   @param $stat_type (array) the stat type.
 */
 function stat_delete_stat_type ($stat_type) {
+  watchdog (
+    'stat',
+    '[stat_delete_stat_type] stat type: <pre>@stat_type</pre>',
+    array (
+      '@stat_type' => print_r ($stat_type, true)
+  ));
+
   // I. Delete the stat type's node type and stat nodes.
   stat_delete_stat_type_node_type ($stat_type);
 
   // II. Delete the stat type's database record.
   db_delete ('{stat_stat_type}')
-  ->condition ('name', $stat_type ['node_type'])
+  ->condition ('node_type', $stat_type ['node_type'])
   ->execute   ();
 }
 
@@ -156,11 +179,19 @@ function stat_create_stat_type_node_type ($stat_type) {
 
   // II. Create core fields.
   simple_field_create_textfield        ($type, $stat_type ['node_type'] . '_value',   t ('Value'));
+  simple_field_create_textfield        ($type, $stat_type ['node_type'] . '_unit',    t ('Units'));
   simple_field_create_entity_reference ($type, $stat_type ['node_type'] . '_subject', t ('Subject'), is_null ($stat_type ['subject_node_type']) ? array () : array ($stat_type ['subject_node_type']), 'node', 1);
   simple_field_create_date_field       ($type, $stat_type ['node_type'] . '_date',    t ('Date'));
 
   // III. Call hook_stat_create_<stat_type_node_type>_stat_type_node_type () to add custom fields.
-  module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_type_node_type', $type);
+  $hook = 'stat_create_' . $stat_type ['node_type'] . '_stat_type_node_type';
+  watchdog (
+    'stat',
+    '[stat_create_stat_type_node_type] hook: @hook',
+    array (
+      '@hook' => $hook
+  ));
+  module_invoke_all ($hook, $type);
 
   // IV. Return the type definition.
   return $type;
@@ -202,17 +233,19 @@ function stat_delete_stat_types_node_types ($stat_types) {
   @param $stat_type (array) the stat type.
   @param $name (string) the human readable stat name.
   @param $value (string) the stat value.
+  @param $unit  (string) the units of measure.
   @param $date  (string) the stat date.
   @param $subject (int) the stat subject.
   @return (node) the stat node with core fields set.
 */
-function stat_create_stat_node ($stat_type, $name, $value, $date, $subject) {
+function stat_create_stat_node ($stat_type, $name, $value, $unit, $date, $subject) {
   // I. Create the stat node and set the core fields.
   $stat = new stdClass ();
   $stat->type = $stat_type ['node_type'];
   node_object_prepare ($stat);
   $stat->title = $name;
   stat_set_value    ($stat, $value);
+  stat_set_unit     ($stat, $unit);
   stat_set_date     ($stat, $date);
   stat_set_subject  ($stat, $subject);
 
@@ -334,4 +367,22 @@ function stat_get_value ($node) {
 */
 function stat_set_value ($node, $value) {
   $node->{$node->type . '_value'}['und'][0]['value'] = $value;
+}
+
+/**
+  @brief Accepts a stat node and returns its units. 
+  @param $node (object) the stat node.
+  @return (string) the stat units.
+*/
+function stat_get_unit ($node) {
+  return $node->{$node->type . '_unit'}['und'][0]['value'];
+}
+
+/**
+  @brief Accepts a stat node and a unit and updates the stats unit.
+  @param $node (object) the stat node.
+  @param $unit (string) the stat unit.
+*/
+function stat_set_unit ($node, $unit) {
+  $node->{$node->type . '_unit'}['und'][0]['value'] = $unit;
 }

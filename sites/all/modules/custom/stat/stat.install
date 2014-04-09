@@ -35,11 +35,6 @@ function stat_schema () {
           'description' => 'The machine name of the node type referenced by the subject field.',
           'type'        => 'text',
           'not null'    => true
-        ),
-        'unit' => array (
-          'description' => 'The name of the unit of measure used to measure stat values.',
-          'type'        => 'text',
-          'not null'    => true
       )),
       'primary key' => array ('node_type')
   ));
