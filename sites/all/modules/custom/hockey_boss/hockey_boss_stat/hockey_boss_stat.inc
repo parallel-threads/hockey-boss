@@ -8,24 +8,24 @@
 
 // ----- I. Content Types -----
 
-/// The Player Game Stat type name.
-define ('hockey_boss_stat_PGS_TYPE', 'hockey_boss_stat_pgs');
-
-/// The Player Performance Stat type name.
-define ('hockey_boss_stat_PPS_TYPE', 'hockey_boss_stat_pps');
+function hockey_boss_stat_pgs_type () {
+  module_load_include ('inc', 'hockey_boss');
+  return array (
+    'name'              => 'Player Game Stat',
+    'description'       => 'Represents player game statistics.',
+    'node_type'         => 'hockey_boss_stat_pgs',
+    'subject_node_type' => hockey_boss_PLAYER_PROFILE_TYPE,
+  );
+}
 
 function hockey_boss_stat_pps_type () {
-  return 
-    array (
-      'name'          => 'Player Performance Stat',
-      'machine_name'  => hockey_boss_stat_PPS_TYPE,
-      'description'   => 'Represents player performance statistics.',
-      'subject_type'  => hockey_boss_PLAYER_PROFILE_TYPE,
-      'stats'         => array (
-        array ('name' => 'Squats'),
-        array ('name' => 'Sprint',
-               'unit' => 'Secs')
-  ));
+  module_load_include ('inc', 'hockey_boss');
+  return array (
+    'name'              => 'Player Performance Stat',
+    'description'       => 'Represents player performance statistics.',
+    'node_type'         => 'hockey_boss_stat_pps',
+    'subject_node_type' => hockey_boss_PLAYER_PROFILE_TYPE
+  );
 }
 
 /**
@@ -37,26 +37,19 @@ function hockey_boss_stat_get_stat_types () {
   module_load_include ('inc', 'hockey_boss');
 
   return array (
-    array (
-      'name'          => 'Player Game Stat',
-      'machine_name'  => hockey_boss_stat_PGS_TYPE,
-      'description'   => 'Represents player game statistics.',
-      'subject_type'  => hockey_boss_PLAYER_PROFILE_TYPE,
-      'create_fields' => array (
-        'module'   => 'hockey_boss_stat',
-        'callback' => 'hockey_boss_stat_create_pgs_fields'
-    )),
+    hockey_boss_stat_pgs_type (),
     hockey_boss_stat_pps_type ()
   );
 }
 
 /**
-  @brief Creates the Player Game Stat fields.
-  @param (array) the Player Game Stat type.
+  @brief Implements hook_stat_create_<node type>_stat_type_node_type ().
+  @details
+    Adds fields to the Player Game Stats node type.
 */
-function hockey_boss_stat_create_pgs_fields ($type) {
-  module_load_include ('inc', 'stat', 'stat.field');
-  simple_field_create_entity_reference ($type, $type->type . '_game', t ('Game'), 1);
+function hockey_boss_stat_stat_create_hockey_boss_stat_pgs_stat_type_node_type ($stat_node) {
+  module_load_include ('inc', 'hockey_boss');
+  simple_field_create_entity_reference ($stat_node, $stat_node->type . '_game', t ('Game'), hockey_boss_GAME_TYPE, 1);
 }
 
 /// Creates the stat types defined by this module.
