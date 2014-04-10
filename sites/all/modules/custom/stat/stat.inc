@@ -174,14 +174,14 @@ function stat_get_stat_type_node_type ($stat_type) {
 */
 function stat_create_stat_type_node_type ($stat_type) {
   // I. Create the content type.
-  $type = stat_get_stat_type_node_type ($stat_type);
-  node_type_save ($type);
+  $stat_type_node_type = stat_get_stat_type_node_type ($stat_type);
+  node_type_save ($stat_type_node_type);
 
   // II. Create core fields.
-  simple_field_create_textfield        ($type, $stat_type ['node_type'] . '_value',   t ('Value'));
-  simple_field_create_textfield        ($type, $stat_type ['node_type'] . '_unit',    t ('Units'));
-  simple_field_create_entity_reference ($type, $stat_type ['node_type'] . '_subject', t ('Subject'), is_null ($stat_type ['subject_node_type']) ? array () : array ($stat_type ['subject_node_type']), 'node', 1);
-  simple_field_create_date_field       ($type, $stat_type ['node_type'] . '_date',    t ('Date'));
+  simple_field_create_textfield        ($stat_type_node_type, $stat_type ['node_type'] . '_value',   t ('Value'));
+  simple_field_create_textfield        ($stat_type_node_type, $stat_type ['node_type'] . '_unit',    t ('Units'));
+  simple_field_create_entity_reference ($stat_type_node_type, $stat_type ['node_type'] . '_subject', t ('Subject'), is_null ($stat_type ['subject_node_type']) ? array () : array ($stat_type ['subject_node_type']), 'node', 1);
+  simple_field_create_date_field       ($stat_type_node_type, $stat_type ['node_type'] . '_date',    t ('Date'));
 
   // III. Call hook_stat_create_<stat_type_node_type>_stat_type_node_type () to add custom fields.
   $hook = 'stat_create_' . $stat_type ['node_type'] . '_stat_type_node_type';
@@ -191,10 +191,10 @@ function stat_create_stat_type_node_type ($stat_type) {
     array (
       '@hook' => $hook
   ));
-  module_invoke_all ($hook, $type);
+  module_invoke_all ($hook, $stat_type_node_type);
 
   // IV. Return the type definition.
-  return $type;
+  return $stat_type_node_type;
 }
 
 /**
@@ -253,7 +253,8 @@ function stat_create_stat_node ($stat_type, $name, $value, $unit, $date, $subjec
   module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_node', $stat);
 
   // III. Saves the newly created stat node.
-  return node_save ($stat);
+  node_save ($stat);
+  return $stat;
 }
 
 /*
@@ -349,6 +350,18 @@ function stat_set_date ($node, $date) {
     'value'     => $date,
     'date_type' => 'date'
   );
+}
+
+/**
+  @brief Accepts a stat node and returns its year.
+  @param $node (object) the stat node.
+  @return (int) the year.
+*/
+function stat_get_year ($node) {
+  // return date ('Y', strtotime (stat_get_date ($node)));
+  $date = stat_get_date ($node);
+  $year = date ('Y', strtotime ($date));
+  return $year + 1;
 }
 
 /**
