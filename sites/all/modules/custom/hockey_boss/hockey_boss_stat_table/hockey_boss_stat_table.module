@@ -13,8 +13,10 @@ function hockey_boss_stat_table_block_info () {
   return array (
     'hockey_boss_stat_table_pps_table' => array (
       'info' => t ('Displays the current player\'s performance stats.')
-    )
-  );
+    ),
+    'hockey_boss_stat_table_pgs_table' => array (
+      'info' => t ('Displays the current player\'s game stats.')
+  ));
 }
 
 /**
@@ -23,6 +25,11 @@ function hockey_boss_stat_table_block_info () {
     Defines the stat table blocks.
 */
 function hockey_boss_stat_table_block_view ($delta = '') {
+  watchdog (
+    'hockey_boss_stat_table',
+    '[hockey_boss_stat_table_block_view]'
+  );
+
   module_load_include ('inc', 'hockey_boss');
   module_load_include ('inc', 'hockey_boss_stat_table');
 
@@ -31,6 +38,15 @@ function hockey_boss_stat_table_block_view ($delta = '') {
       $player = node_load (arg (1));
       if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
         $content = hockey_boss_stat_table_pps ($player);
+        return array (
+          'subject' => '',
+          'content' => $content
+        );
+      }
+    case 'hockey_boss_stat_table_pgs_table':
+      $player = node_load (arg (1));
+      if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+        $content = hockey_boss_stat_table_pgs ($player);
         return array (
           'subject' => '',
           'content' => $content

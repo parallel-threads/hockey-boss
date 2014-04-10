@@ -71,6 +71,7 @@ function hockey_boss_create_game_type () {
   $type = hockey_boss_create_type (hockey_boss_GAME_TYPE, 'Game', 'Represents matches.');
 
   node_add_body_field ($type);
+  simple_field_create_date_field ($type, $type->type . '_date', t ('Date'));
   simple_field_create_textfield ($type, $type->type . '_scores', t ('Scores'));
   simple_field_create_entity_reference ($type, $type->type . '_teams', t ('Teams'), array (hockey_boss_TEAM_PROFILE_TYPE), 'node', 2);
 }
@@ -109,6 +110,32 @@ function hockey_boss_create_types () {
 }
 
 /**
+  @brief Accepts a player node and returns its team node id.
+  @return (int) the team node id.
+*/
+function hockey_boss_get_player_team ($node) {
+  return $node->{hockey_boss_PLAYER_PROFILE_TYPE . '_team'}['und'][0]['target_id'];
+}
+
+/**
+  @brief Accepts a game node and returns its date.
+  @return (string) the date.
+*/
+function hockey_boss_get_game_date ($node) {
+  return $node->{hockey_boss_GAME_TYPE . '_date'}['und'][0]['value'];
+}
+
+/**
+  @brief Accepts a game node and returns the node id of the teams.
+  @return (array) the team node ids.
+*/
+function hockey_boss_get_game_teams ($node) {
+  $xs = $node->{hockey_boss_GAME_TYPE . '_teams'}['und'];
+  return array ($xs [0]['target_id'],
+                $xs [1]['target_id']);
+}
+
+/**
   @brief Accepts a node type and returns the node
     id of every node that has the given type.
   @param $type (string) the node type.
@@ -125,6 +152,22 @@ function hockey_boss_get_nodes ($type) {
     $nids [] = $record->nid;
   }
   return $nids;
+}
+
+/**
+  @brief Returns the node ids of the games ordered by date.
+  @return (array) the node ids.
+*/
+function hockey_boss_get_game_nodes () {
+  $game_nodes = array ();
+  $game_nids = hockey_boss_get_nodes (hockey_boss_GAME_TYPE);
+  foreach ($game_nids as $game_nid) {
+    $game_node = node_load ($game_nid);
+    $game_date = hockey_boss_get_game_date ($game_node);
+    $game_nodes [$game_date] = $game_node;
+  }
+  ksort ($game_nodes);
+  return $game_nodes;
 }
 
 /**

@@ -20,12 +20,6 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
   module_load_include ('inc', 'stat');
   module_load_include ('inc', 'hockey_boss_stat');
 
-  $stat_units = array ();
-  foreach (stat_get_unit_terms () as $term) {
-    $stat_units [$term->tid] = $term->name;
-  }
-
-  // I. Retrieve the stat associated with the field.
   $field_stat_name = $column_name;
   $field_stat_year = $row_name;
 
@@ -34,78 +28,56 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
     if ($stat->title != $field_stat_name) {
       continue;
     }
-    $stat_year = date ('Y', strtotime (stat_get_date ($stat)));
+    $stat_year = stat_get_year ($stat);
     if ($stat_year != $field_stat_year) {
       continue;
     }
-    $stat_unit     = stat_get_unit ($stat);
-    $stat_unit_tid = stat_get_unit_tid ($stat);
     $stat_value    = stat_get_value ($stat);
+//    $stat_unit     = stat_get_unit ($stat);
     if ($editable) {
       return array (
         'value' => array (
           '#type' => 'container',
           "stat_value_$stat->nid" => array (
             '#type'               => 'textfield',
-            '#default_value'      => "$stat_value",
+            '#default_value'      => $stat_value,
             '#size'               => $field_width
+/*
           ),
           "stat_unit_$stat->nid" => array (
-            '#type'              => 'select',
-            '#options'           => $stat_units,
-            '#default_value'     => $stat_unit_tid,
-            '#empty_option'      => '- None -',
-            '#required'          => false
+            '#type'              => 'textfield',
+            '#default_value'     => $stat_unit,
+            '#size'              => $field_width
+*/
       )));
     } else {
-      return "$stat_value $stat_unit";
+      // return "$stat_value $stat_unit";
+      return "$stat_value";
     }
   }
+  // II. Create a stat for undefined fields.
+  $stat_date = simple_field_create_date_field_value ($field_stat_year, 0, 0);
+  $stat_date = $stat_date ['value'];
+  $stat_type = hockey_boss_stat_pps_type ();
+  $stat = stat_create_stat_node ($stat_type, $field_stat_name, '', '', $stat_date, $player_nid);
 
-  // II. Create a stat node to represent the missing stat.
-
-  $stat = new stdClass ();
-  $stat->type = hockey_boss_stat_PPS_TYPE;
-  node_object_prepare ($stat);
-  $stat->title = $field_stat_name;
-  $stat = stat_set_value ($stat, '0');
-  $stat = stat_set_date ($stat, $field_stat_year . '-01-01T12:00:00');
-  $stat = stat_set_subject ($stat, $player_nid);
-  node_save ($stat);
-
-
-  $stat_test = stat_create_stat (
-    hockey_boss_stat_pps_type (),
-    $column_name,
-    '0',
-    $field_stat_year . '-01-01T12:00:00',
-    $player_nid
- );
-/*
-  watchdog (
-    'hockey_boss_stat_table',
-    '[hockey_boss_stat_table_pps_default_field_value] stat: <pre>@stat</pre>',
-    array (
-      '@stat' => print_r ($stat_test, true)
-  ));
-*/
   if ($editable) {
     return array (
       'value' => array (
         '#type' => 'container',
         "stat_value_$stat->nid" => array (
           '#type'          => 'textfield',
-          '#default_value' => '0',
           '#size'          => $field_width
+/*
         ),
         "stat_unit_$stat->nid" => array (
-          '#type'          => 'select',
-          '#options'       => $stat_units,
-          '#empty_option'  => '- None -',
+          '#type'          => 'textfield',
+          '#size'          => $field_width,
           '#required'      => false
+*/
     )));
   } else {
-    return '0';
+    return '';
   }
 }
 
@@ -114,6 +86,7 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
     Stat table form and updates its stats.
 */
 function hockey_boss_stat_table_pps_submit ($form, $form_state) {
+  module_load_include ('inc', 'stat');
   foreach ($form_state ['input'] as $key => $value) {
     if (strpos ($key, 'stat_value_') === 0) {
       $stat_nid = substr ($key, 11);
@@ -123,19 +96,18 @@ function hockey_boss_stat_table_pps_submit ($form, $form_state) {
       }
       stat_set_value ($stat, $value);
       node_save ($stat);
-    } elseif (strpos ($key, 'stat_unit_') === 0) {
+    }
+/*
+    elseif (strpos ($key, 'stat_unit_') === 0) {
       $stat_nid = substr ($key, 10);
       $stat = node_load ($stat_nid);
       if (is_null ($stat)) {
         continue;
       }
-      if ($value === '') {
-        stat_unset_unit_tid ($stat);
-      } else {
-        stat_set_unit_tid ($stat, $value);
-      }
+      stat_set_unit ($stat, $value);
       node_save ($stat);
     }
+*/
   }
   drupal_set_message ('Stats updated.');
 }
@@ -157,9 +129,16 @@ function hockey_boss_stat_table_pps ($player) {
   global $user;
   $editable = hockey_boss_stat_table_pps_access ($user);
 
+  $start_year = '2012';
+  $current_year = date ('Y');
+  $years = array ();
+  for ($year = $start_year; $year <= $current_year; $year ++) {
+    $years [] = $year;
+  }
+
   $data = array (
     'module'  => 'hockey_boss_stat_table',
-    'rows'    => array ('2014', '2013'),
+    'rows'    => $years,
     'columns' => array (
       array (
         'column_name' => t ('Year'),
@@ -213,86 +192,185 @@ function hockey_boss_stat_table_pps ($player) {
   return $form;
 }
 
-function hockey_boss_stat_table_pfs ($player) {
+/**
+  @brief The access callback function for the
+    Player Game Stats table.
+*/
+function hockey_boss_stat_table_pgs_access ($user) {
+  return ($user->uid == 1);
+}
+
+/**
+  @brief The default field value callback function
+    for the Player Game Stats table.
+*/
+function hockey_boss_stat_table_pgs_default_field_value ($column_name, $row_name, $player_nid, $editable, $field_width = 5) {
+  module_load_include ('inc', 'stat');
+  module_load_include ('inc', 'hockey_boss');
+  module_load_include ('inc', 'hockey_boss_stat');
+
+  $field_stat_name = $column_name;
+  $field_stat_game_nid  = $row_name;
+  $game_node = node_load ($field_stat_game_nid);
+  if (!$game_node) {
+    return '';
+  }
+
+  if ($column_name == t ('Game')) {
+    return $game_node->title;
+  }
+  if ($column_name == t ('Date')) {
+    $game_date = date_create (hockey_boss_get_game_date ($game_node));
+    return date_format ($game_date, 'Y-m-d');
+  }
+
+  $stats = stat_get_stats_by_subject (hockey_boss_stat_PGS_TYPE, $player_nid);
+  foreach ($stats as $stat) {
+    if ($stat->title != $field_stat_name) {
+      continue;
+    }
+    $stat_game_nid = hockey_boss_stat_pgs_get_game ($stat);
+    if ($stat_game_nid != $field_stat_game_nid) {
+      continue;
+    }
+    $stat_value = stat_get_value ($stat);
+    if ($editable) {
+      return array (
+        'value' => array (
+          '#type' => 'container',
+          "stat_value_$stat->nid" => array (
+            '#type'               => 'textfield',
+            '#default_value'      => $stat_value,
+            '#size'               => $field_width
+      )));
+    } else {
+      return $stat_value;
+    } 
+  }
+  $stat_date = $game_node->{$game_node->type . '_date'}['und'][0]['value']; 
+  $stat_type = hockey_boss_stat_pgs_type ();
+  $stat = stat_create_stat_node ($stat_type, $field_stat_name, '', '', $stat_date, $player_nid);
+  hockey_boss_stat_pgs_set_game ($stat, $game_node->nid);
+  node_save ($stat);
+  watchdog (
+    'hockey_boss_stat_table',
+    '[hockey_boss_stat_table_pgs_default_field_value] new stat: <pre>@stat</pre>',
+    array (
+      '@stat' => print_r ($stat, true)
+  ));
+  if ($editable) {
+    return array (
+      'value' => array (
+        '#type' => 'container',
+        "stat_value_$stat->nid" => array (
+          '#type'          => 'textfield',
+          '#size'          => $field_width
+    )));
+  } else {
+    return '';
+  }
+}
+
+/**
+  @brief Accepts a submitted Player Game Stats
+    table and updates its stats.
+*/
+function hockey_boss_stat_table_pgs_submit ($form, $form_state) {
+  module_load_include ('inc', 'stat');
+  foreach ($form_state ['input'] as $key => $value) {
+    if (strpos ($key, 'stat_value_') === 0) {
+      $stat_nid = substr ($key, 11);
+      $stat = node_load ($stat_nid);
+      if (is_null ($stat)) {
+        continue;
+      }
+      stat_set_value ($stat, $value);
+      node_save ($stat);
+    }
+  }
+  drupal_set_message ('Stats updated.');
+}
+
+/**
+  @brief Accepts a player node and returns a simple
+    table form that represents the player's game
+    stats table.
+  @param $player (node) the player node.
+  @return (array) the stats table form.
+*/
+function hockey_boss_stat_table_pgs ($player) {
   module_load_include ('inc', 'hockey_boss');
   module_load_include ('inc', 'hockey_boss_stat');
   module_load_include ('inc', 'stat');
 
-  $stats = stat_get_stats_by_subject (hockey_boss_stat_PFS_TYPE, $player->nid);
+  $stats = stat_get_stats_by_subject (hockey_boss_stat_PGS_TYPE, $player->nid);
 
   global $user;
-  $editable = hockey_boss_stat_table_pfs_access ($user);
+  $editable = hockey_boss_stat_table_pgs_access ($user);
 
+  // get the games that the player's team have played in.
+  $player_team_nid = hockey_boss_get_player_team ($player);
+  $game_nids = array ();
+  foreach (hockey_boss_get_game_nodes () as $game) {
+    $game_team_nids = hockey_boss_get_game_teams ($game);
+    if ($player_team_nid == $game_team_nids [0] ||
+        $player_team_nid == $game_team_nids [1]) {
+      $game_nids [] = $game->nid;
+    }
+  } 
   $data = array (
     'module'  => 'hockey_boss_stat_table',
-    'rows'    => array ('2014', '2013'),
+    'rows'    => $game_nids,
     'columns' => array (
       array (
-        'column_name' => t ('Year'),
+        'column_name' => t ('Game'),
+        'weight'      => 11
+      ),
+      array (
+        'column_name' => t ('Date'),
         'weight'      => 10
       ),
       array (
-        'column_name' => t ('Circles Without Puck'),
+        'column_name' => t ('Goals'),
         'weight'      => 9
       ),
       array (
-        'column_name' => t ('Circles With Puck'),
+        'column_name' => t ('Assists'),
         'weight'      => 8
       ),
       array (
-        'column_name' => t ('Russian Circles Without Puck'),
+        'column_name' => t ('Shots'),
         'weight'      => 7
       ),
       array (
-        'column_name' => t ('Russian Circles With Puck'),
+        'column_name' => t ('Shots On Goal'),
         'weight'      => 6
       ),
       array (
-        'column_name' => t ('Full Ice Sprint'),
+        'column_name' => t ('Shots Against'),
         'weight'      => 5
       ),
       array (
-        'column_name' => t ('Suicides'),
+        'column_name' => t ('Shots Against On Goal'),
         'weight'      => 4
       ),
       array (
-        'column_name' => t ('Push-ups'),
+        'column_name' => t ('Penalties'),
         'weight'      => 3
       ),
       array (
-        'column_name' => t ('Sit-ups'),
+        'column_name' => t ('Face-Offs'),
         'weight'      => 2
       ),
       array (
-        'column_name' => t ('Pull-ups'),
+        'column_name' => t ('+/-'),
         'weight'      => 1
-      ),
-      array (
-        'column_name' => t ('Benchpress'),
-        'weight'      => 0
-      ),
-      array (
-        'column_name' => t ('Legpress'),
-        'weight'      => -1
-      ),
-      array (
-        'column_name' => t ('Squat'),
-        'weight'      => -2
-      ),
-      array (
-        'column_name' => t ('60 Yard Dash'),
-        'weight'      => -3
-      ),
-      array (
-        'column_name' => t ('Mile Time'), 
-        'weight'      => -4
     )), 
-    'submit'                        => $editable ? array ('hockey_boss_stat_table_pfs_submit') : null,
+    'submit'                        => $editable ? array ('hockey_boss_stat_table_pgs_submit') : null,
     'fields'                        => array (),
     'sortable'                      => !$editable,
-    'sort_column'                   => t ('Year'),
-    'label_column_name'             => t ('Year'),
-    'default_field_value_function'  => 'hockey_boss_stat_table_pfs_default_field_value',
+    'sort_column'                   => t ('Date'),
+    'default_field_value_function'  => 'hockey_boss_stat_table_pgs_default_field_value',
     'default_field_value_arguments' => array ($player->nid, $editable, 5)
   ); 
   $form = drupal_get_form ('simple_table_form', $data);
