@@ -33,7 +33,6 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
       continue;
     }
     $stat_value    = stat_get_value ($stat);
-//    $stat_unit     = stat_get_unit ($stat);
     if ($editable) {
       return array (
         'value' => array (
@@ -42,13 +41,6 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
             '#type'               => 'textfield',
             '#default_value'      => $stat_value,
             '#size'               => $field_width
-/*
-          ),
-          "stat_unit_$stat->nid" => array (
-            '#type'              => 'textfield',
-            '#default_value'     => $stat_unit,
-            '#size'              => $field_width
-*/
       )));
     } else {
       // return "$stat_value $stat_unit";
@@ -68,13 +60,6 @@ function hockey_boss_stat_table_pps_default_field_value ($column_name, $row_name
         "stat_value_$stat->nid" => array (
           '#type'          => 'textfield',
           '#size'          => $field_width
-/*
-        ),
-        "stat_unit_$stat->nid" => array (
-          '#type'          => 'textfield',
-          '#size'          => $field_width,
-          '#required'      => false
-*/
     )));
   } else {
     return '';
@@ -97,17 +82,6 @@ function hockey_boss_stat_table_pps_submit ($form, $form_state) {
       stat_set_value ($stat, $value);
       node_save ($stat);
     }
-/*
-    elseif (strpos ($key, 'stat_unit_') === 0) {
-      $stat_nid = substr ($key, 10);
-      $stat = node_load ($stat_nid);
-      if (is_null ($stat)) {
-        continue;
-      }
-      stat_set_unit ($stat, $value);
-      node_save ($stat);
-    }
-*/
   }
   drupal_set_message ('Stats updated.');
 }
@@ -375,4 +349,24 @@ function hockey_boss_stat_table_pgs ($player) {
   ); 
   $form = drupal_get_form ('simple_table_form', $data);
   return $form;
+}
+
+/**
+  @brief the Access callback function for the team
+    roster table.
+*/
+function hockey_boss_stat_table_tr_access ($user) {
+  return ($user->$uid == 1);
+}
+
+/**
+  @brief The default field value callback function
+    for the Team Roster table.
+*/
+function hockey_boss_stat_table_tr_default_field_value ($column_name, $row_name, $team_nid, $editable, $field_width = 5) {
+  module_load_include ('inc', 'stat');
+  module_load_include ('inc', 'hockey_boss_stat');
+
+  $field_stat_name = $column_name;
+  $field_stat_player_nid = $row_name;
 }
