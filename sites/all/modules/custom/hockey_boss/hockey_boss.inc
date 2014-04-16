@@ -113,7 +113,7 @@ function hockey_boss_create_types () {
   @brief Accepts a player node and returns its team node id.
   @return (int) the team node id.
 */
-function hockey_boss_get_player_team ($node) {
+function hockey_boss_get_player_team_nid ($node) {
   return $node->{hockey_boss_PLAYER_PROFILE_TYPE . '_team'}['und'][0]['target_id'];
 }
 
@@ -129,7 +129,7 @@ function hockey_boss_get_game_date ($node) {
   @brief Accepts a game node and returns the node id of the teams.
   @return (array) the team node ids.
 */
-function hockey_boss_get_game_teams ($node) {
+function hockey_boss_get_game_team_nids ($node) {
   $xs = $node->{hockey_boss_GAME_TYPE . '_teams'}['und'];
   return array ($xs [0]['target_id'],
                 $xs [1]['target_id']);
