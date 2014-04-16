@@ -235,10 +235,10 @@ function stat_delete_stat_types_node_types ($stat_types) {
   @param $value (string) the stat value.
   @param $unit  (string) the units of measure.
   @param $date  (string) the stat date.
-  @param $subject (int) the stat subject.
+  @param $subject_nid (int) the stat subject.
   @return (node) the stat node with core fields set.
 */
-function stat_create_stat_node ($stat_type, $name, $value, $unit, $date, $subject) {
+function stat_create_stat_node ($stat_type, $name, $value, $unit, $date, $subject_nid) {
   // I. Create the stat node and set the core fields.
   $stat = new stdClass ();
   $stat->type = $stat_type ['node_type'];
@@ -247,10 +247,17 @@ function stat_create_stat_node ($stat_type, $name, $value, $unit, $date, $subjec
   stat_set_value    ($stat, $value);
   stat_set_unit     ($stat, $unit);
   stat_set_date     ($stat, $date);
-  stat_set_subject  ($stat, $subject);
+  stat_set_subject  ($stat, $subject_nid);
 
   // II. Call hook_stat_create_<stat_type_node_type>_stat_node () to set custom field values.
   module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_node', $stat);
+
+  watchdog (
+    'stat',
+    '[stat_create_stat_node] stat: <pre>@stat</pre>',
+    array (
+      '@stat' => print_r ($stat, true)
+  ));
 
   // III. Saves the newly created stat node.
   node_save ($stat);
@@ -302,11 +309,11 @@ function stat_delete_node_type ($type) {
     stats that reference the entity that has the
     given id.
 */
-function stat_get_stats_by_subject ($type, $entity_id) {
+function stat_get_stats_by_subject_nid ($type, $entity_id) {
   $stats = array ();
   foreach ((array) stat_get_nodes ($type) as $stat_nid) {
     $stat = node_load ($stat_nid);
-    if ($entity_id == stat_get_subject ($stat)) {
+    if ($entity_id == stat_get_subject_nid ($stat)) {
       $stats[] = $stat;
     }
   }
@@ -318,7 +325,7 @@ function stat_get_stats_by_subject ($type, $entity_id) {
   @param $node (object) the stat node.
   @return (int) the subject entity id.
 */
-function stat_get_subject ($node) {
+function stat_get_subject_nid ($node) {
   return $node->{$node->type . '_subject'}['und'][0]['target_id'];
 }
 
