@@ -37,19 +37,17 @@ function hockey_boss_stat_table_block_view ($delta = '') {
     case 'hockey_boss_stat_table_pps_table':
       $player = node_load (arg (1));
       if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
-        $content = hockey_boss_stat_table_pps ($player);
         return array (
           'subject' => '',
-          'content' => $content
+          'content' => drupal_get_form ('simple_table_get_form', new PPSTable ($player->nid))
         );
       }
     case 'hockey_boss_stat_table_pgs_table':
       $player = node_load (arg (1));
       if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
-        $content = hockey_boss_stat_table_pgs ($player);
         return array (
           'subject' => '',
-          'content' => $content
+          'content' => drupal_get_form ('simple_table_get_form', new PGSTable ($player))
         );
       }
   }
