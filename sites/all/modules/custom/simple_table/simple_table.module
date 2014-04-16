@@ -79,6 +79,26 @@ class SimpleTable {
   /// Returns a table object.
   public function __construct () {}
 
+  /**
+    @brief Accepts a list of column names and returns
+      a list of column arrays.
+    @param $column_names (array) the column names.
+    @return (array) the columns.
+  */
+  public static function create_columns ($column_names) {
+    $columns = array ();
+    $column_index = 0;
+    foreach ((array) $column_names as $column_name) {
+      $columns [] = array (
+        'name'   => $column_name,
+        'label'  => t ($column_name),
+        'weight' => $column_index
+      );
+      $column_index ++;
+    }
+    return $columns;
+  }
+
   /// Returns the row names, including those declared implicitly.
   public function get_all_row_names () {
     $row_names = $this->row_names;
@@ -117,7 +137,7 @@ class SimpleTable {
     @brief Accepts two columns and returns true iff the
       first one has a lower weight than the second.
   */
-  private function column_weight_lt ($x, $y) {
+  public function column_weight_lt ($x, $y) {
     return $x ['weight'] < $y ['weight'];
   }
 
@@ -127,7 +147,7 @@ class SimpleTable {
   */
   public function get_all_columns_sorted () {
     $columns = $this->get_all_columns ();
-    usort ($columns, $this->column_weight_lt);
+    usort ($columns, array ($this, 'column_weight_lt'));
     return $columns;
   }
 
@@ -208,7 +228,7 @@ class SimpleTable {
     $column_names = $this->get_all_column_names_sorted ();
     foreach ((array) $row_names as $row_name) {
       $row = array (
-        'row_name'   => $row_name,
+        'name'   => $row_name,
         'fields'     => array (),
         'sort_value' => null
       );
@@ -238,27 +258,18 @@ class SimpleTable {
   public function get_all_rows_sorted () {
     $rows = $this->get_all_rows ();
     if (!is_null ($this->sort_column_name)) {
-      usort ($rows, $this->row_sort_value_lt);
+      usort ($rows, array ($this, 'row_sort_value_lt'));
     }
     return $rows;
   }
 
-  /// The AJAX sort callback.
-  public static function sort_table () {
-    list ($form, $form_state) = ajax_get_form();
-
-    // Set the sort column in the table data array.
-    $form_state ['build_info']['args'][0]->sort_column_name = $form_state ['input']['_triggering_element_value'];
-
-    // Force Drupal to create a new form rather than use a cached version.
-    unset ($form_state ['input']['form_build_id']);
-
-    // Create and return the new form.
-    return drupal_build_form ('SimpleTable::get_form', $form_state);
-  }
-
   /// The submit callback.
-  public static function process_table ($form, $form_state) {}
+  public static function process_table_form ($form, $form_state) {
+    watchdog (
+      'simple_table',
+      '[SimpleTable::process_table]'
+    );
+  }
 
   /**
     @brief Accepts a form and a form state array and
@@ -272,8 +283,8 @@ class SimpleTable {
 
     // I. Create the table form.
 
-    $columns    = $this->get_all_columns_sorted ();
-    $rows       = $this->get_all_rows_sorted ();
+    $columns    = $table->get_all_columns_sorted ();
+    $rows       = $table->get_all_rows_sorted ();
     $body_rows  = array ();
     $footer_row = array ();
     foreach ((array) $rows as $row) {
@@ -323,7 +334,7 @@ class SimpleTable {
         $column_element ['#type']  = 'button';
         $column_element ['#value'] = $column ['label'];
         $column_element ['#ajax']  = array (
-          'callback' => 'SimpleTable::sort_table',
+          'callback' => 'simple_table_sort',
           'wrapper'  => $unique_form_id
         );
       } else {
@@ -382,11 +393,81 @@ class SimpleTable {
     }
     if ($table->submittable) {
       $form ['submit'] = array (
-        '#type'   => 'submit',
-        '#value'  => 'Update',
-        '#submit' => 'SimpleTable::process_table'
+        '#simple_table_object' => $table,
+        '#type'                => 'submit',
+        '#value'               => 'Update',
+        '#submit'              => array ('simple_table_form_submit')
       );
     }
     return $form;
   }
 }
+
+/**
+  @brief A wrapper function for SimpleTable::
+    get_form used for callbacks.
+  @note Drupal does not allow class members to be
+    used for callbacks in its Form API and so this
+    function wraps the SimpleTable::get_form
+    function so that it can be referenced.
+*/
+function simple_table_get_form ($form, $form_state) {
+  watchdog (
+    'simple_table',
+    '[simple_table_get_form] form state: <pre>@form_state</pre>',
+    array (
+      '@form_state' => print_r ($form_state, true)
+  ));
+  $table = $form_state ['build_info']['args'][0];
+  return $table->get_form ($form, $form_state, $table);
+}
+
+/// An AJAX callback used to sort simple table forms.
+function simple_table_sort () {
+  list ($form, $form_state) = ajax_get_form ();
+  
+  // Retrieves the simple table object.
+  $table = $form_state ['build_info']['args'][0];
+
+  // Set the sort column in the table data array.
+  $table->sort_column_name = $form_state ['input']['_triggering_element_value'];
+
+  // Force Drupal to create a new form rather than use a cached version.
+  unset ($form_state ['input']['form_build_id']);
+
+  // Create and return the new form.
+  $new_form = drupal_build_form ('simple_table_get_form', $form_state);
+  
+  watchdog (
+    'simple_table',
+    '[simple_table_sort] form: <pre>@form</pre> form state: <pre>@form_state</pre> table: <pre>@table</pre> new form: <pre>@new_form</pre>',
+    array (
+      '@form'       => print_r ($form, true),
+      '@form_state' => print_r ($form_state, true),
+      '@table'      => print_r ($table, true),
+      '@new_form'   => print_r ($new_form, true)
+  ));
+
+  return $new_form;
+}
+
+/**
+  @brief A submit callback for simple table forms.
+  @note Drupal's form API does not allow static
+    class methods to be used as callbacks. Instead
+    they must be wrapped. This function provides a
+    wrapper for SimpleTable::process_form.
+*/
+function simple_table_form_submit ($form, $form_state) {
+  $table = $form_state ['build_info']['args'][0];
+  $new_form = $table->process_table_form ($form, $form_state, $table);
+  watchdog (
+    'simple_table',
+    '[simple_table_form_submit] form: <pre>@form</pre> form state: <pre>@form_state</pre> new form: <pre>@new_form</pre>',
+    array ( 
+      '@form'       => print_r ($form, true),
+      '@form_state' => print_r ($form_state, true),
+      '@new_form'   => print_r ($new_form, true)
+  ));
+}
+
