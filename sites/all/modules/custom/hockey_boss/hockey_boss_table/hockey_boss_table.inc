@@ -256,3 +256,175 @@ class PGSTable extends SimpleTable {
     drupal_set_message ('Stats updated.');
   }
 }
+
+/// Represents the team roster tables.
+class TRTable extends SimpleTable {
+  /**
+    The team profile node of the team whose players
+    are displayed in this table.
+  */
+  public $team = null;
+
+  /// Returns a team roster table.
+  public function __construct ($team) {
+    parent::__construct ();
+
+    module_load_include ('inc', 'hockey_boss');
+
+    $this->team = $team;
+
+    // set row names.
+    foreach ((array) hockey_boss_get_nodes (hockey_boss_PLAYER_PROFILE_TYPE) as $player_nid) {
+      $player = node_load ($player_nid);
+      if (hockey_boss_get_player_team_nid ($player) == $team->nid) {
+        $this->row_names [] = $player->nid;
+      }
+    }
+
+    // set columns.
+    $this->columns = $this->create_columns (
+      array ('+/-', 'Face-Offs', 'Penalties', 'Shots Against On Goal', 'Shots Against', 'Shots On Goal', 'Shots', 'Assists', 'Goals', 'Position', 'Name'));
+
+    $this->sort_column_name = 'Name';
+  }
+
+  /// Returns the default field values.
+  public function get_default_field_value ($column_name, $row_name) {
+    module_load_include ('inc', 'hockey_boss_stat');
+    module_load_include ('inc', 'stat');
+
+    $player_nid = $row_name;
+    $player = node_load ($player_nid);
+    if (!$player) {
+      return array (
+        'id'            => null,
+        'value'         => '',
+        'display_value' => ''
+      );
+    }
+
+    if ($column_name === 'Name') {
+      $player_node_uri = node_uri ($player);
+      $player_profile_link = l ($player->title, $player_node_uri ['path']);
+      return array (
+        'id'            => null,
+        'value'         => $player->title,
+        'display_value' => $player_profile_link
+      );
+    } 
+    if ($column_name === 'Position') {
+      // To Be Implemented
+      return array (
+        'id'            => null,
+        'value'         => '',
+        'display_value' => ''
+      );
+    }
+
+    $stat_name = $column_name;
+
+    $stat = null;
+    $current_year = date ('Y');
+    foreach ((array) stat_get_stats_by_subject_nid (hockey_boss_stat_PPS_TYPE, $player->nid) as $_stat) {
+      if ($_stat->title == $stat_name && stat_get_year ($_stat) === $current_year) {
+        $stat = $_stat;
+        break;
+      }
+    }
+
+    if (is_null ($stat)) {
+      $stat_date  = simple_field_create_date_field_value ($current_year, 0, 0);
+      $stat_date  = $stat_date ['value'];
+      $stat_type  = hockey_boss_stat_pps_type ();
+      $stat = stat_create_stat_node ($stat_type, $stat_name, '', '', $stat_date, $player->nid);
+    }
+
+    $stat_value = stat_get_value ($stat);
+    $field_width = 3;
+    return array (
+      'id'            => null,
+      'value'         => $stat_value,
+      'display_value' => $stat_value
+    );
+  }
+}
+
+/// Represents the player comparison tables.
+class PCTable extends SimpleTable {
+
+  /// Returns a player comparison table.
+  public function __construct ($player_nids) {
+    parent::__construct ();
+
+    // set row names.
+    foreach ((array) $player_nids as $player_nid) {
+      $player = node_load ($player_nid);
+      if ($player) {
+        $this->row_names [] = $player_nid;
+      }
+    }
+
+    // set columns.
+    $this->columns = $this->create_columns (
+      array ('+/-', 'Face-Offs', 'Penalties', 'Shots Against On Goal', 'Shots Against', 'Shots On Goal', 'Shots', 'Assists', 'Goals', 'Position', 'Name'));
+
+    $this->sort_column_name = 'Name';
+  }
+
+  /// Returns the default field values.
+  public function get_default_field_value ($column_name, $row_name) {
+    $player_nid = $row_name;
+    $player = node_load ($player_nid);
+    if (!$player) {
+      return array (
+        'id'            => null,
+        'value'         => '',
+        'display_value' => ''
+      );
+    }
+
+    if ($column_name === 'Name') {
+      $player_node_uri = node_uri ($player);
+      $player_profile_link = l ($player->title, $player_node_uri ['path']);
+      return array (
+        'id'            => null,
+        'value'         => $player->title,
+        'display_value' => $player_profile_link
+      );
+    }  
+    if ($column_name === 'Position') {
+      // To Be Implemented
+      return array (
+        'id'            => null,
+        'value'         => '',
+        'display_value' => ''
+      );
+    }
+
+    $stat_name = $column_name;
+
+    $stat = null;
+    $current_year = date ('Y');
+    foreach ((array) stat_get_stats_by_subject_nid (hockey_boss_stat_PPS_TYPE, $player->nid) as $_stat) {
+      if ($_stat->title == $stat_name && stat_get_year ($_stat) === $current_year) {
+        $stat = $_stat;
+        break;
+      }
+    }
+
+    if (is_null ($stat)) {
+      $stat_date  = simple_field_create_date_field_value ($current_year, 0, 0);
+      $stat_date  = $stat_date ['value'];
+      $stat_type  = hockey_boss_stat_pps_type ();
+      $stat = stat_create_stat_node ($stat_type, $stat_name, '', '', $stat_date, $player->nid);
+    }
+
+    $stat_value = stat_get_value ($stat);
+    $field_width = 3;
+    return array (
+      'id'            => null,
+      'value'         => $stat_value,
+      'display_value' => $stat_value
+    );
+  }
+}

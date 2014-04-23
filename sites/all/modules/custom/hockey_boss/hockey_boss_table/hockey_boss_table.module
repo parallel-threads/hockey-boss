@@ -16,6 +16,12 @@ function hockey_boss_table_block_info () {
     ),
     'hockey_boss_table_pgs' => array (
       'info' => t ('Displays the current player\'s game stats.')
+    ),
+    'hockey_boss_table_tr' => array (
+      'info' => t ('Displays the team roster.')
+    ),
+    'hockey_boss_table_pc' => array (
+      'info' => t ('Displays the player comparison table.')
   ));
 }
 
@@ -37,12 +43,32 @@ function hockey_boss_table_block_view ($delta = '') {
           'content' => drupal_get_form ('simple_table_get_form', new PPSTable ($player->nid))
         );
       }
+      break;
     case 'hockey_boss_table_pgs':
       $player = node_load (arg (1));
       if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
         return array (
           'subject' => '',
           'content' => drupal_get_form ('simple_table_get_form', new PGSTable ($player))
+        );
+      }
+      break;
+    case 'hockey_boss_table_tr':
+      $team = node_load (arg (1));
+      if ($team && $team->type == hockey_boss_TEAM_PROFILE_TYPE) {
+        return array (
+          'subject' => '',
+          'content' => drupal_get_form ('simple_table_get_form', new TRTable ($team))
+        );
+      }
+      break;
+    case 'hockey_boss_table_pc':
+      $player_x = node_load (arg (1));
+      $player_y = node_load (arg (2));
+      if ($player_x && $player_y && $player_x->type == hockey_boss_PLAYER_PROFILE_TYPE && $player_y->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+        return array (
+          'subject' => '',
+          'content' => drupal_get_form ('simple_table_get_form', new PCTable (array ($player_x->nid, $player_y->nid)))
         );
       }
   }
