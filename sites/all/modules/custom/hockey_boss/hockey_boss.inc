@@ -22,17 +22,17 @@ define ('hockey_boss_TEAM_PROFILE_TYPE', 'hockey_boss_team_type');
 
 /**
   @brief Defines a content type.
-  @param $machine_name (string) the internal type name.
-  @param $name (string) the human-readable type name.
+  @param $name (string) the internal type name.
+  @param $label (string) the human-readable type name.
   @param $description (string) a description of the type.
   @return (object) a content type.
 */
-function hockey_boss_get_type ($machine_name, $name, $description) {
+function hockey_boss_get_type ($name, $label, $description) {
   $t = get_t (); 
   return node_type_set_defaults (
     array (
-      'type'        => $machine_name,
-      'name'        => $t ($name),
+      'type'        => $name,
+      'name'        => $t ($label),
       'description' => $t ($description),
       'help'        => $t ($description),
       'has_title'   => true,
@@ -44,69 +44,49 @@ function hockey_boss_get_type ($machine_name, $name, $description) {
   )); 
 }
 
-/**
-  @brief Creates a content type.
-  @param $machine_name (string) the internal type name.
-  @param $name (string) the human-readable type name.
-  @param $description (string) a description of the type.
-  @return (object) a content type.
-*/
-function hockey_boss_create_type ($machine_name, $name, $description) {
-  $type = hockey_boss_get_type ($machine_name, $name, $description);
-  node_type_save ($type);
-  return $type;
+/// Defines the Coach Profile content type.
+function hockey_boss_coach_profile_type () {
+  return hockey_boss_get_type (hockey_boss_COACH_PROFILE_TYPE, 'Coach Profile', 'Represents coach profiles.');
 }
 
-/// Creates the Coach Profile type.
-function hockey_boss_create_coach_profile_type () {
-  $type = hockey_boss_create_type (hockey_boss_COACH_PROFILE_TYPE, 'Coach Profile', 'Represents coach profiles.');
-
-  node_add_body_field ($type, 'Bio');
-  simple_field_create_entity_reference ($type, $type->type . '_user', t ('User Account'), array (), 'user');
-  simple_field_create_entity_reference ($type, $type->type . '_team', t ('Team'), array (hockey_boss_TEAM_PROFILE_TYPE));
+/// Defines the Game type.
+function hockey_boss_game_type () {
+  return hockey_boss_get_type (hockey_boss_GAME_TYPE, 'Game', 'Represents matches.');
 }
 
-/// Creates the Game type.
-function hockey_boss_create_game_type () {
-  $type = hockey_boss_create_type (hockey_boss_GAME_TYPE, 'Game', 'Represents matches.');
-
-  node_add_body_field ($type);
-  simple_field_create_date_field ($type, $type->type . '_date', t ('Date'));
-  simple_field_create_textfield ($type, $type->type . '_scores', t ('Scores'));
-  simple_field_create_entity_reference ($type, $type->type . '_teams', t ('Teams'), array (hockey_boss_TEAM_PROFILE_TYPE), 'node', 2);
+/// Defines the Player Profile content type.
+function hockey_boss_player_profile_type () {
+  return hockey_boss_get_type (hockey_boss_PLAYER_PROFILE_TYPE, 'Player Profile', 'Represents amateur hockey players.');
 }
 
-/// Creates the Player Profile type.
-function hockey_boss_create_player_profile_type () {
-  $type = hockey_boss_create_type (hockey_boss_PLAYER_PROFILE_TYPE, 'Player Profile', 'Represents amateur hockey players.');
-
-  node_add_body_field ($type, 'Bio');
-  simple_field_create_entity_reference ($type, $type->type . '_user', t ('User Account'), array (), 'user');
-  simple_field_create_entity_reference ($type, $type->type . '_team', t ('Team'), array (hockey_boss_TEAM_PROFILE_TYPE));
+/// Defines the Team Profile content type.
+function hockey_boss_team_profile_type () {
+  return hockey_boss_get_type (hockey_boss_TEAM_PROFILE_TYPE, 'Team Profile', 'Represents amateur hockey teams.');
 }
 
-/// Creates the Team Profile type.
-function hockey_boss_create_team_profile_type () {
-  $type = hockey_boss_create_type (hockey_boss_TEAM_PROFILE_TYPE, 'Team Profile', 'Represents amateur hockey teams.');
-
-  simple_field_create_entity_reference ($type, $type->type . '_coach', t ('Coach'), array (hockey_boss_COACH_PROFILE_TYPE));
-}
-
-/// Returns an associative array listing the core content types and their constructor functions.
+/// Returns the core content types.
 function hockey_boss_types () {
   return array (
-    hockey_boss_COACH_PROFILE_TYPE  => 'hockey_boss_create_coach_profile_type',
-    hockey_boss_GAME_TYPE           => 'hockey_boss_create_game_type',
-    hockey_boss_PLAYER_PROFILE_TYPE => 'hockey_boss_create_player_profile_type',
-    hockey_boss_TEAM_PROFILE_TYPE   => 'hockey_boss_create_team_profile_type'
+    hockey_boss_coach_profile_type (),
+    hockey_boss_game_type (),
+    hockey_boss_player_profile_type (),
+    hockey_boss_team_profile_type ()
   );
 }
 
 /// Creates the core content types.
 function hockey_boss_create_types () {
-  foreach (array_values (hockey_boss_types ()) as $f) {
-    call_user_func ($f);
+  foreach (hockey_boss_types () as $type) {
+    node_type_save ($type);
   }
+}
+
+/**
+  @brief Accepts a player node and returns the user id of the user associated with it.
+  @return (int) the user id.
+*/
+function hockey_boss_get_player_user_uid ($node) {
+  return simple_field_get_relation_source_entity_id ($node, hockey_boss_PLAYER_PROFILE_TYPE . '_user');
 }
 
 /**
@@ -114,7 +94,23 @@ function hockey_boss_create_types () {
   @return (int) the team node id.
 */
 function hockey_boss_get_player_team_nid ($node) {
-  return $node->{hockey_boss_PLAYER_PROFILE_TYPE . '_team'}['und'][0]['target_id'];
+  return simple_field_get_relation_target_entity_id ($node, hockey_boss_PLAYER_PROFILE_TYPE . '_team');
+}
+
+/**
+  @brief Accepts a team node and returns its coach node id.
+  @return (int) the coach node id.
+*/
+function hockey_boss_get_team_coach_nid ($node) {
+  return simple_field_get_relation_source_entity_id ($node, hockey_boss_TEAM_PROFILE_TYPE . '_coach');
+}
+
+/**
+  @brief Accepts a coach node and returns its user id.
+  @return (int) the coach user id.
+*/
+function hockey_boss_get_coach_user_uid ($node) {
+  return simple_field_get_relation_source_entity_id ($node, hockey_boss_COACH_PROFILE_TYPE . '_user');
 }
 
 /**
@@ -122,7 +118,7 @@ function hockey_boss_get_player_team_nid ($node) {
   @return (string) the date.
 */
 function hockey_boss_get_game_date ($node) {
-  return $node->{hockey_boss_GAME_TYPE . '_date'}['und'][0]['value'];
+  return $node ? $node->{hockey_boss_GAME_TYPE . '_date'}['und'][0]['value'] : null;
 }
 
 /**
@@ -130,9 +126,7 @@ function hockey_boss_get_game_date ($node) {
   @return (array) the team node ids.
 */
 function hockey_boss_get_game_team_nids ($node) {
-  $xs = $node->{hockey_boss_GAME_TYPE . '_teams'}['und'];
-  return array ($xs [0]['target_id'],
-                $xs [1]['target_id']);
+  return simple_field_get_entity_reference_target_ids ($node, hockey_boss_GAME_TYPE . '_teams');
 }
 
 /**
@@ -186,12 +180,135 @@ function hockey_boss_delete_type ($type)  {
 
 /// Deletes the core content types.
 function hockey_boss_delete_types () {
-  foreach (array_keys (hockey_boss_types ()) as $name) {
-    hockey_boss_delete_type ($name);
+  foreach (hockey_boss_types () as $type) {
+    hockey_boss_delete_type ($type->type);
   }
 }
 
-// ----- II. User Roles -----
+// ----- II. Relations -----
+
+/// The Coach/Team relation name.
+define ('hockey_boss_COACH_TEAM_RELATION', 'hockey_boss_coach_team_relation');
+
+/// The Player/Team relation name.
+define ('hockey_boss_PLAYER_TEAM_RELATION', 'hockey_boss_player_team_relation');
+
+/// The User/Coach relation name.
+define ('hockey_boss_USER_COACH_RELATION', 'hockey_boss_user_coach_relation');
+
+/// The User/Player relation name.
+define ('hockey_boss_USER_PLAYER_RELATION', 'hockey_boss_user_player_relation');
+
+/**
+  @brief Defines a relation type.
+  @param $name (string) the internal type name.
+  @param $label (string) the human-readable type name.
+  @param $source_bundles (array) the source bundles.
+  @param $directional (boolean) indicates whether
+    or not the relation is directional.
+  @param $reverse_label (string) the human-readable
+    name of the reversed relation. Default $label.
+  @param $target_bundles (array) the target bundles.
+  @return (relation_type).
+*/
+function hockey_boss_get_relation ($name, $label, $source_bundles, $directional = false, $reverse_label = null, $target_bundles = array ()) {
+  if (is_null ($reverse_label)) { $reverse_label = $label; }
+  return relation_type_create (array (
+    'relation_type'  => $name,
+    'label'          => $label,
+    'reverse_label'  => $reverse_label,
+    'directional'    => $directional,
+    'source_bundles' => $source_bundles,
+    'target_bundles' => $target_bundles
+  ));
+}
+
+/// Defines the coach/team relation.
+function hockey_boss_coach_team_relation () {
+  return hockey_boss_get_relation (hockey_boss_COACH_TEAM_RELATION, 'Coach Team', array ('node:' . hockey_boss_COACH_PROFILE_TYPE), true, 'Team Coach', array ('node:' . hockey_boss_TEAM_PROFILE_TYPE));
+}
+
+/// Defines the player/team relation.
+function hockey_boss_player_team_relation () {
+  return hockey_boss_get_relation (hockey_boss_PLAYER_TEAM_RELATION, 'Player Team', array ('node:' . hockey_boss_PLAYER_PROFILE_TYPE), true, 'Team Player', array ('node:' . hockey_boss_TEAM_PROFILE_TYPE));
+}
+
+/// Defines the user/coach relation.
+function hockey_boss_user_coach_relation () {
+  return hockey_boss_get_relation (hockey_boss_USER_COACH_RELATION, 'User Coach Profile', array ('user:user'), true, 'Coach Profile User', array ('node:' . hockey_boss_COACH_PROFILE_TYPE)); 
+}
+
+/// Defines the user/player relation.
+function hockey_boss_user_player_relation () {
+  return hockey_boss_get_relation (hockey_boss_USER_PLAYER_RELATION, 'User Player Profile', array ('user:user'), true, 'Player Profile User', array ('node:' . hockey_boss_PLAYER_PROFILE_TYPE));
+}
+
+/// Returns the core relations.
+function hockey_boss_relations () {
+  return array (
+    hockey_boss_coach_team_relation (),
+    hockey_boss_player_team_relation (),
+    hockey_boss_user_coach_relation (),
+    hockey_boss_user_player_relation ()
+  );
+}
+
+/// Creates the core relations.
+function hockey_boss_create_relations () {
+  foreach (hockey_boss_relations () as $relation) {
+    relation_type_save ($relation);
+  }
+}
+
+/// Deletes the core relations.
+function hockey_boss_delete_relations () {
+  foreach (hockey_boss_relations () as $relation) {
+    relation_type_delete ($relation->relation_type);
+  }
+}
+
+// ----- III. Create Fields. -----
+
+/// Creates the Coach Profile fields. 
+function hockey_boss_create_coach_profile_fields () {
+  $type = hockey_boss_coach_profile_type ();
+  node_add_body_field ($type, 'Bio');
+  simple_field_create_relation_field ($type, $type->type . '_user', t ('User Account'), hockey_boss_USER_COACH_RELATION . ':reverse', 1);
+  simple_field_create_relation_field ($type, $type->type . '_team', t ('Team'), hockey_boss_COACH_TEAM_RELATION);
+}
+
+/// Creates the Game fields.
+function hockey_boss_create_game_fields () {
+  $type = hockey_boss_game_type ();
+  node_add_body_field ($type, 'Recap');
+  simple_field_create_date_field ($type, $type->type . '_date', t ('Date'));
+  simple_field_create_textfield ($type, $type->type . '_scores', t ('Scores'));
+  simple_field_create_entity_reference ($type, $type->type . '_teams', t ('Teams'), array (hockey_boss_TEAM_PROFILE_TYPE), 'node', 2);
+}
+
+/// Creates the Player Profile fields.
+function hockey_boss_create_player_profile_fields () {
+  $type = hockey_boss_player_profile_type ();
+  simple_field_create_relation_field ($type, $type->type . '_user', t ('User Account'), hockey_boss_USER_PLAYER_RELATION . ':reverse', 1);
+  simple_field_create_relation_field ($type, $type->type . '_team', t ('Team'), hockey_boss_PLAYER_TEAM_RELATION);
+}
+
+/// Creates the Team Profile fields.
+function hockey_boss_create_team_profile_fields () {
+  $type = hockey_boss_team_profile_type ();
+  simple_field_create_relation_field ($type, $type->type . '_coach', t ('Coach'), hockey_boss_COACH_TEAM_RELATION . ':reverse', 1);
+  simple_field_create_relation_field ($type, $type->type . '_player', t ('Players'), hockey_boss_PLAYER_TEAM_RELATION . ':reverse');
+}
+
+/// Creates the core fields.
+function hockey_boss_create_fields () {
+  hockey_boss_create_coach_profile_fields ();
+  hockey_boss_create_game_fields ();
+  hockey_boss_create_player_profile_fields ();
+  hockey_boss_create_team_profile_fields ();
+}
+
+// ----- IV. User Roles -----
 
 /// The Coach role name. 
 define ('hockey_boss_COACH_ROLE', 'hockey_boss_coach_role');

@@ -5,3 +5,83 @@
     content types and user roles used on the Hockey
     Boss site.
 */
+
+/// Implements hook_permission ().
+function hockey_boss_permission () {
+  return array (
+    'hockey_boss_view_own_player_profile' => array (
+      'title'       => t ('View Own Player Profile'),
+      'description' => t ('Enables users to view their own player profiles.')
+    ),
+    'hockey_boss_view_all_player_profiles' => array (
+      'title'       => t ('View All Player Profiles'),
+      'description' => t ('Enables users to view all player profiles.')
+    )
+  );
+}
+
+/// Implements hook_menu ().
+function hockey_boss_menu () {
+  return array (
+    'player-comparison/%/%' => array (
+      'title'            => t ('Player Comparison'),
+      'description'      => t ('Displays two players side-by-side for comparison.'),
+      'access callback'  => 'user_access',
+      'access arguments' => array ('hockey_boss_view_all_player_profiles'),
+      'page callback'    => 'hockey_boss_player_comparison_page',
+      'page arguments'   => array (1, 2),
+      'type'             => MENU_NORMAL_ITEM
+  ));
+}
+
+/// Returns the Player Comparison form.
+function hockey_boss_player_comparison_form ($form, &$form_state) {
+  module_load_include ('inc', 'hockey_boss');
+  return array (
+    'player_x' => array (
+      '#type'            => 'entityreference',
+      '#title'           => t ('First Player'),
+      '#era_entity_type' => 'node',
+      '#era_bundles'     => array (hockey_boss_PLAYER_PROFILE_TYPE),
+      '#era_cardinality' => 1
+    ),
+    'player_y' => array (
+      '#type'            => 'entityreference',
+      '#title'           => t ('Second Player'),
+      '#era_entity_type' => 'node',
+      '#era_bundles'     => array (hockey_boss_PLAYER_PROFILE_TYPE),
+      '#era_cardinality' => 1
+    ),
+    'submit' => array (
+      '#type'  => 'submit',
+      '#value' => 'Compare!'
+    )
+  );
+}
+
+/// Processes a Player Comparison form.
+function hockey_boss_player_comparison_form_submit ($form, &$form_state) {
+  drupal_goto ('player-comparison/' .
+    $form_state ['values']['player_x']['entity_id'] . '/' .
+    $form_state ['values']['player_y']['entity_id']
+  );
+}
+
+/**
+  @brief Returns the Player Comparison page.
+  @param $player_x_nid (int) the first player profile node id.
+  @param $player_y_nid (int) the second player profile node id.
+  @return (array) a render array.
+*/
+function hockey_boss_player_comparison_page ($player_x_nid, $player_y_nid) {
+  $form = drupal_get_form ('hockey_boss_player_comparison_form');
+  watchdog (
+    'hockey_boss',
+    '[hockey_boss_player_comparison_page] form: <pre>@form</pre>',
+    array (
+      '@form' => print_r ($form, true)
+  ));
+  return array (
+    'player_comparison_form' => $form
+  );
+}

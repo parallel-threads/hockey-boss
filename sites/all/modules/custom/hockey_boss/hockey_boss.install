@@ -13,6 +13,11 @@
     vocabularies used on the Hockey Boss site.
 */
 function hockey_boss_install () {
+  watchdog (
+    'hockey_boss',
+    '[hockey_boss_install]'
+  );
+
   module_load_include ('inc', 'hockey_boss');
 
   // I. Create the core content types.
@@ -22,6 +27,13 @@ function hockey_boss_install () {
   // II. Create the core user roles.
   hockey_boss_create_roles ();
   drupal_set_message ('Created the core Hockey Boss user roles.');
+
+  // III. Create the core relations.
+  hockey_boss_create_relations ();
+  drupal_set_message ('Created the core Hockey Boss relations.');
+
+  // IV. Create the core fields.
+  hockey_boss_create_fields ();
 }
 
 /**
@@ -30,13 +42,22 @@ function hockey_boss_install () {
     Deletes the core content types.
 */
 function hockey_boss_uninstall () {
+  watchdog (
+    'hockey_boss',
+    '[hockey_boss_install]'
+  );
+
   module_load_include ('inc', 'hockey_boss');
 
-  // I. Delete the core user roles.
+  // I. Delete the core relations.
+  hockey_boss_delete_relations ();
+  drupal_set_message ('Deleted the core Hockey Boss relations.');
+
+  // II. Delete the core user roles.
   hockey_boss_delete_roles ();
   drupal_set_message ('Deleted the core Hockey Boss user roles.');
 
-  // II. Delete the core content tpes.
+  // III. Delete the core content tpes.
   hockey_boss_delete_types ();
   drupal_set_message ('Deleted the core Hockey Boss types.');
 }
