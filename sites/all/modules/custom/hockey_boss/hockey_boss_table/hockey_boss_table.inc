@@ -37,8 +37,30 @@ class PPSTable extends SimpleTable {
   }
 
   /// Returns true iff the current user has permission to edit this table.
-  public static function editable () {
-    return false;
+  public function editable () {
+    module_load_include ('inc', 'hockey_boss');
+
+    global $user;
+    $player = node_load ($this->player_nid);
+
+    $player_uid = hockey_boss_get_player_user_uid ($player);
+
+    $coach_uid = hockey_boss_get_coach_user_uid (
+                   node_load (hockey_boss_get_team_coach_nid (
+                     node_load (hockey_boss_get_player_team_nid ($player)))));
+
+    watchdog (
+      'hockey_boss_table',
+      '[PPSTable::editable] user id: @uid player user id: @player_uid coach user id: @coach_uid',
+      array (
+        '@uid' => $user->uid,
+        '@player_uid' => $player_uid,
+        '@coach_uid'   => $coach_uid
+    ));
+
+    return user_access ('hockey_boss_stat_edit_all_pps') ||
+           ($user->uid == $player_uid && user_access ('hockey_boss_stat_edit_own_pps')) ||
+           ($user->uid == $coach_uid  && user_access ('hockey_boss_stat_edit_team_pps'));
   }
 
   /// Returns the default field values.
@@ -285,6 +307,7 @@ class TRTable extends SimpleTable {
     $this->columns = $this->create_columns (
       array ('+/-', 'Face-Offs', 'Penalties', 'Shots Against On Goal', 'Shots Against', 'Shots On Goal', 'Shots', 'Assists', 'Goals', 'Position', 'Name'));
 
+    $this->sortable = true;
     $this->sort_column_name = 'Name';
   }
 
@@ -323,10 +346,13 @@ class TRTable extends SimpleTable {
 
     $stat_name = $column_name;
 
+
     $stat = null;
     $current_year = date ('Y');
     foreach ((array) stat_get_stats_by_subject_nid (hockey_boss_stat_PPS_TYPE, $player->nid) as $_stat) {
-      if ($_stat->title == $stat_name && stat_get_year ($_stat) === $current_year) {
+      $stat_year = stat_get_year ($_stat);
+      if ($_stat->title == $stat_name &&
+          $stat_year == $current_year) {
         $stat = $_stat;
         break;
       }
@@ -368,11 +394,15 @@ class PCTable extends SimpleTable {
     $this->columns = $this->create_columns (
       array ('+/-', 'Face-Offs', 'Penalties', 'Shots Against On Goal', 'Shots Against', 'Shots On Goal', 'Shots', 'Assists', 'Goals', 'Position', 'Name'));
 
+    $this->sortable = true;
     $this->sort_column_name = 'Name';
   }
 
   /// Returns the default field values.
   public function get_default_field_value ($column_name, $row_name) {
+    module_load_include ('inc', 'hockey_boss_stat');
+    module_load_include ('inc', 'stat');
+
     $player_nid = $row_name;
     $player = node_load ($player_nid);
     if (!$player) {
@@ -406,7 +436,9 @@ class PCTable extends SimpleTable {
     $stat = null;
     $current_year = date ('Y');
     foreach ((array) stat_get_stats_by_subject_nid (hockey_boss_stat_PPS_TYPE, $player->nid) as $_stat) {
-      if ($_stat->title == $stat_name && stat_get_year ($_stat) === $current_year) {
+      $stat_year = stat_get_year ($_stat);
+      if ($_stat->title == $stat_name &&
+          $stat_year == $current_year) {
         $stat = $_stat;
         break;
       }

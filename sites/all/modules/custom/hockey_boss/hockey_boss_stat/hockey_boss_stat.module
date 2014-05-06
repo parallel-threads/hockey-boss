@@ -5,3 +5,21 @@
     Stat content types used by the Hockey Boss
     site.
 */
+
+/// Implements hook_permission ().
+function hockey_boss_stat_permission () {
+  return array (
+    'hockey_boss_stat_edit_all_pps' => array (
+      'title'       => t ('Edit All Player Performance Stats'),
+      'description' => t ('Enables users to edit all player performance stats.')
+    ),
+    'hockey_boss_stat_edit_own_pps' => array (
+      'title'       => t ('Edit Own Player Performance Stats'),
+      'description' => t ('Enables a user to edit their own player performance stats.')
+    ),
+    'hockey_boss_stat_edit_team_pps' => array (
+      'title'       => t ('Edit Team Player Performance Stats'),
+      'description' => t ('Enables a user to edit the player performance stats of team members.')
+    ),
+  );
+}
