@@ -328,7 +328,7 @@ class SimpleTable {
       }
       $column_element = array (
         '#prefix' => $table->sortable && $is_sort_column ? '<th class="simple_table_sort_column_header">' : '<th>',
-        '#suffix' => ($table->sortable && $is_sort_column ? '<img class="simple_table_sort_icon" src="' . url (drupal_get_path ('module', 'simple_table') . '/theme/images/desc_sort_icon.png') . '">' : '') . '</th>',
+        '#suffix' => ($table->sortable && $is_sort_column ? '<img class="simple_table_sort_icon" src="' . url (drupal_get_path ('module', 'simple_table') . '/theme/images/desc_sort_icon.png', array ('absolute' => true)) . '">' : '') . '</th>',
       );
       if ($table->sortable) {
         $column_element ['#type']  = 'button';

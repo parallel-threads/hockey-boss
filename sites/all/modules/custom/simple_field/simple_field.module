@@ -232,6 +232,61 @@ function simple_field_create_date_field ($type, $name, $label) {
 }
 
 /**
+  @brief Creats a Relation Add field.
+  @param $type (object) the content type.
+  @param $name (string) the field name.
+  @param $label (string) the field label.
+  @param $relation_type (string) the relation type.
+    Note that when referencing the reverse of a
+    directional relation, append ":reverse".
+  @param $cardinality (int) the default
+    cardinality. Default
+    FIELD_CARDINALITY_UNLIMITED.
+  @param $entity_type (string) the entity type of
+    the entity that this field will be attached to.
+    Default 'node'.
+*/
+function simple_field_create_relation_field ($type, $name, $label, $relation_type, $cardinality = FIELD_CARDINALITY_UNLIMITED, $entity_type = 'node') {
+  watchdog (
+    'simple_field',
+    '[simple_field_create_relation_field] type: <pre>@type</pre>',
+    array (
+      '@type' => print_r ($type, true)
+  ));
+  $field    = field_info_field($name);
+  $instance = field_info_instance($entity_type, $name, $type->type);
+  if (empty($field)) {
+    $field = array(
+      'field_name'   => $name,
+      'type'         => 'relation_add',
+      'cardinality'  => $cardinality,
+    );
+    $field = field_create_field($field);
+  }
+  if (empty($instance)) {
+    $instance = array(
+      'field_name'  => $name,
+      'entity_type' => $entity_type,
+      'bundle'      => $type->type,
+      'label'       => $label,
+      'widget'      => array(
+        'type'     => 'relation_add',
+        'settings' => array (
+          'relation_endpoint_label_delta'  => false,
+          'relation_endpoint_label'        => 'custom',
+          'relation_endpoint_custom_label' => $label,
+      )),
+      'settings'    => array (
+        'relation_type' => array (
+          $relation_type => $relation_type
+      )),
+    );
+    $instance = field_create_instance($instance);
+  }
+  return $instance;
+}
+
+/**
   @brief Adds an entity id to an entity reference field.
   @param $id (integer) the entity id.
   @return (array) the field value.
@@ -252,4 +307,92 @@ function simple_field_create_date_field_value ($year, $month, $day) {
     'value' => sprintf ('%04d-%02d-%02dT12:00:00', $year, $month, $day),
     'date_type' => 'date'
   );
+}
+
+/**
+  @brief Accepts a node and a field name and returns the field's values.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (array) the field values.
+*/
+function simple_field_get_field_values ($node, $field_name) {
+  return $node && !empty ($node->{$field_name}) ?
+           $node->{$field_name}['und'] :
+           array ();
+}
+
+/**
+  @brief Accepts a node and a field name and returns the field's first value.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (array) the first field value.
+*/
+function simple_field_get_field_value ($node, $field_name) {
+  $field_values = simple_field_get_field_values ($node, $field_name);
+  return $field_values && is_array ($field_values) && !empty ($field_values) ?
+           $field_values [0] :
+           null;
+}
+
+/**
+  @brief Accepts a node and an entity reference field name and returns its target ids.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (array) the target ids.
+*/
+function simple_field_get_entity_reference_target_ids ($node, $field_name) {
+  $target_ids = array ();
+  foreach (simple_field_get_field_values ($node, $field_name) as $field_value) {
+    $target_ids [] = $field_value ['target_id'];
+  }
+  return $target_ids;
+}
+
+/**
+  @brief Accepts a node and an entity reference field name and returns its first target id.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (int) the first target id.
+*/
+function simple_field_get_entity_reference_target_id ($node, $field_name) {
+  $target_ids = simple_field_get_entity_reference_target_ids ($node, $field_name);
+  return empty ($target_ids) ? null : $target_ids [0];
+}
+
+/**
+  @brief Accepts a node and a relation add field and returns its endpoint entity ids.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (array) the entity ids.
+*/
+function simple_field_get_relation_endpoint_entity_ids ($node, $field_name) {
+  $entity_ids = array ();
+  foreach (simple_field_get_field_values ($node, $field_name) as $field_value) {
+    foreach ($field_value ['endpoints']['und'] as $endpoint) {
+      $entity_ids [] = $endpoint ['entity_id'];
+    }
+  }
+  return $entity_ids;
+}
+
+/**
+  @brief Accepts a node and a relation add field and returns the source entity id of its first endpoint.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (int) the entity id.
+*/
+function simple_field_get_relation_source_entity_id ($node, $field_name) {
+  $entity_ids = simple_field_get_relation_endpoint_entity_ids ($node, $field_name);
+  return empty ($entity_ids) ? null : $entity_ids [0];
+}
+
+/**
+  @brief Accepts a node and a relation add field and returns the target entity id of its first endpoint.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (int) the entity id.
+*/
+function simple_field_get_relation_target_entity_id ($node, $field_name) {
+  $entity_ids = simple_field_get_relation_endpoint_entity_ids ($node, $field_name);
+  return empty ($entity_ids) ? null : $entity_ids [1];
 }
