@@ -6,6 +6,11 @@
     Boss site.
 */
 
+/// Implements hook_view_api ().
+function hockey_boss_views_api () {
+  return array ('api' => 3.0);
+}
+
 /// Implements hook_permission ().
 function hockey_boss_permission () {
   return array (
@@ -31,6 +36,15 @@ function hockey_boss_menu () {
       'page callback'    => 'hockey_boss_player_comparison_page',
       'page arguments'   => array (1, 2),
       'type'             => MENU_NORMAL_ITEM
+    ),
+    // I. Team profile page links
+    // II. Player profile page links.
+    'node/%/team' => array (
+      'title'            => t ('Team'),
+      'description'      => t ('The team profile page.'),
+      'page callback'    => 'hockey_boss_player_team_page',
+      'page arguments'   => array (1),
+      'type'             => MENU_LOCAL_TASK
   ));
 }
 
@@ -75,13 +89,19 @@ function hockey_boss_player_comparison_form_submit ($form, &$form_state) {
 */
 function hockey_boss_player_comparison_page ($player_x_nid, $player_y_nid) {
   $form = drupal_get_form ('hockey_boss_player_comparison_form');
-  watchdog (
-    'hockey_boss',
-    '[hockey_boss_player_comparison_page] form: <pre>@form</pre>',
-    array (
-      '@form' => print_r ($form, true)
-  ));
   return array (
     'player_comparison_form' => $form
   );
+}
+
+/**
+  @brief Redirects the user to the profile page of
+    the team associated with the given player.
+  @player_nid (int) the player node id.
+*/
+function hockey_boss_player_team_page ($player_nid) {
+  module_load_include ('inc', 'hockey_boss');
+  $team_node = hockey_boss_get_player_team_nid (node_load ($player_nid));
+  $team_uri = node_uri ($team_node);
+  drupal_goto ($team_uri ['path']);
 }

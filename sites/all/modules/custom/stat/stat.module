@@ -6,3 +6,17 @@
     to represent statistics and share a set of core
     fields.
 */
+
+/**
+  @brief Implements hook_node_delete ().
+  @details Deletes those stats that reference a
+    node that is being deleted.
+*/
+function stat_node_delete ($node) {
+  module_load_include ('inc', 'stat');
+  foreach (stat_get_all_stat_types () as $stat_type) {
+    foreach (stat_get_stats_by_subject_nid ($stat_type ['node_type'], $node->nid) as $stat_node) {
+      node_delete ($stat_node);
+    }
+  }
+}

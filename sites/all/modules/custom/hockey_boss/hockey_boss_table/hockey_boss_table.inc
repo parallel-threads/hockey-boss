@@ -48,7 +48,7 @@ class PPSTable extends SimpleTable {
     $coach_uid = hockey_boss_get_coach_user_uid (
                    node_load (hockey_boss_get_team_coach_nid (
                      node_load (hockey_boss_get_player_team_nid ($player)))));
-
+/*
     watchdog (
       'hockey_boss_table',
       '[PPSTable::editable] user id: @uid player user id: @player_uid coach user id: @coach_uid',
@@ -57,7 +57,7 @@ class PPSTable extends SimpleTable {
         '@player_uid' => $player_uid,
         '@coach_uid'   => $coach_uid
     ));
-
+*/
     return user_access ('hockey_boss_stat_edit_all_pps') ||
            ($user->uid == $player_uid && user_access ('hockey_boss_stat_edit_own_pps')) ||
            ($user->uid == $coach_uid  && user_access ('hockey_boss_stat_edit_team_pps'));
@@ -99,7 +99,7 @@ class PPSTable extends SimpleTable {
         'value'         => $stat_value,
         'display_value' => array (
           '#type' => 'container',
-          "stat_value_$stat->nid" => array (
+          "stat_value_$field_stat->nid" => array (
             '#type'               => 'textfield',
             '#default_value'      => $stat_value,
             '#size'               => $field_width
@@ -296,12 +296,14 @@ class TRTable extends SimpleTable {
     $this->team = $team;
 
     // set row names.
-    foreach ((array) hockey_boss_get_nodes (hockey_boss_PLAYER_PROFILE_TYPE) as $player_nid) {
-      $player = node_load ($player_nid);
-      if (hockey_boss_get_player_team_nid ($player) == $team->nid) {
-        $this->row_names [] = $player->nid;
-      }
-    }
+    $this->row_names = hockey_boss_get_team_player_nids ($team);
+
+    watchdog (
+      'hockey_boss_table',
+      '[TRTable::get_default_field_value] row names: @row_names',
+      array (
+        '@row_names' => print_r ($this->row_names, true)
+    ));
 
     // set columns.
     $this->columns = $this->create_columns (
@@ -315,6 +317,14 @@ class TRTable extends SimpleTable {
   public function get_default_field_value ($column_name, $row_name) {
     module_load_include ('inc', 'hockey_boss_stat');
     module_load_include ('inc', 'stat');
+
+    watchdog (
+      'hockey_boss_table',
+      '[TRTable::get_default_field_value] column name: @column_name row name: @row_name',
+      array (
+        '@column_name' => $column_name,
+        '@row_name'    => $row_name
+    ));
 
     $player_nid = $row_name;
     $player = node_load ($player_nid);
@@ -375,6 +385,100 @@ class TRTable extends SimpleTable {
   }
 }
 
+/// Represents the league teams tables.
+class LTTable extends SimpleTable {
+
+  /// The league profile node id.
+  public $league_nid = null;
+
+  /// Returns a league team table.
+  public function __construct ($league_node) {
+    parent::__construct ();
+
+    $this->columns = $this->create_columns (
+      array ('+/-', 'Face-Offs', 'Penalties', 'Shots Against On Goal', 'Shots Against', 'Shots On Goal', 'Shots', 'Assists', 'Goals', 'Name'));
+
+    $this->row_names = simple_field_get_relation_source_entity_ids ($league_node, hockey_boss_LEAGUE_PROFILE_TYPE . '_teams');
+    watchdog (
+      'hockey_boss_table',
+      '[LTTable::get_default_field_value] row names: <pre>@row_names</pre>',
+      array (
+        '@row_names' => print_r ($this->row_names, true)
+    ));
+
+    $this->sortable = true;
+    $this->sort_column_name = 'Name';
+  }
+
+  /// Returns the default field values.
+  public function get_default_field_value ($column_name, $row_name) {
+    watchdog (
+      'hockey_boss_table',
+      '[LTTable::get_default_field_value] column name: @column_name row name: @row_name',
+      array (
+        '@column_name' => $column_name,
+        '@row_name'    => $row_name
+    ));
+    module_load_include ('inc', 'stat');
+    module_load_include ('inc', 'hockey_boss_stat');
+
+    $team_nid = $row_name;
+    $team_node = node_load ($team_nid);
+    watchdog (
+      'hockey_boss_table',
+      '[LTTable::get_default_field_value] team node: <pre>@team_node</pre>',
+      array (
+        '@team_node' => print_r ($team_node, true)
+    ));
+    if (!$team_node) {
+      return array (
+        'id'            => null,
+        'value'         => '',
+        'display_value' => ''
+      );
+    }
+
+    if ($column_name == 'Name') {
+      $team_node_uri = node_uri ($team_node);
+      return array (
+        'id'            => null,
+        'value'         => $team_node->title,
+        'display_value' => l ($team_node->title, $team_node_uri ['path'])
+      );
+    }
+
+    $stat_name = $column_name;
+    $stat_value = '';
+    $current_year = date ('Y');
+    $team_player_nids = simple_field_get_relation_source_entity_ids ($team_node, hockey_boss_TEAM_PROFILE_TYPE . '_players');
+    watchdog (
+      'hockey_boss_table',
+      '[LTTable::get_default_field_value] team player nids: <pre>@team_player_nids</pre>',
+      array (
+        '@team_player_nids' => print_r ($team_player_nids, true)
+    ));
+    foreach ($team_player_nids as $team_player_nid) {
+      $query = stat_node_query_create (hockey_boss_stat_PPS_TYPE);
+      $query = stat_node_query_add_title_filter ($query, $stat_name);
+      $query = stat_node_query_add_year_filter ($query, $current_year);
+      $query = stat_node_query_add_subject_filter ($query, $team_player_nid);
+      $player_stat_nodes = stat_node_query_execute ($query);
+
+      if (!empty ($player_stat_nodes)) {
+        $player_stat_node = $player_stat_nodes [0];
+        if ($stat_value === '') { $stat_value = 0; }
+        $stat_value += stat_get_value ($player_stat_node);
+      }
+    }
+
+    return array (
+      'id'            => null,
+      'value'         => $stat_value,
+      'display_value' => $stat_value
+    );
+  }
+}
+
 /// Represents the player comparison tables.
 class PCTable extends SimpleTable {
 
@@ -415,11 +519,10 @@ class PCTable extends SimpleTable {
 
     if ($column_name === 'Name') {
       $player_node_uri = node_uri ($player);
-      $player_profile_link = l ($player->title, $player_node_uri ['path']);
       return array (
         'id'            => null,
         'value'         => $player->title,
-        'display_value' => $player_profile_link
+        'display_value' => l ($player->title, $player_node_uri ['path'])
       );
     }  
     if ($column_name === 'Position') {

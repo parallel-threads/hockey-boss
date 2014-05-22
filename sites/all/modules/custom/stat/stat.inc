@@ -19,12 +19,6 @@
     )
 */
 function stat_create_stat_type ($stat_type) {
-  watchdog (
-    'stat',
-    '[stat_create_stat_type] stat type: <pre>@stat_type</pre>',
-    array (
-      '@stat_type' => print_r ($stat_type, true)
-  ));
   drupal_write_record ('stat_stat_type', $stat_type);
   stat_create_stat_type_node_type ($stat_type);
 };
@@ -112,13 +106,6 @@ function stat_node_type_delete ($info) {
   @param $stat_type (array) the stat type.
 */
 function stat_delete_stat_type ($stat_type) {
-  watchdog (
-    'stat',
-    '[stat_delete_stat_type] stat type: <pre>@stat_type</pre>',
-    array (
-      '@stat_type' => print_r ($stat_type, true)
-  ));
-
   // I. Delete the stat type's node type and stat nodes.
   stat_delete_stat_type_node_type ($stat_type);
 
@@ -178,19 +165,13 @@ function stat_create_stat_type_node_type ($stat_type) {
   node_type_save ($stat_type_node_type);
 
   // II. Create core fields.
-  simple_field_create_textfield        ($stat_type_node_type, $stat_type ['node_type'] . '_value',   t ('Value'));
-  simple_field_create_textfield        ($stat_type_node_type, $stat_type ['node_type'] . '_unit',    t ('Units'));
-  simple_field_create_entity_reference ($stat_type_node_type, $stat_type ['node_type'] . '_subject', t ('Subject'), is_null ($stat_type ['subject_node_type']) ? array () : array ($stat_type ['subject_node_type']), 'node', 1);
-  simple_field_create_date_field       ($stat_type_node_type, $stat_type ['node_type'] . '_date',    t ('Date'));
+  simple_field_create_textfield        ('node', $stat_type ['node_type'], $stat_type ['node_type'] . '_value',   t ('Value'));
+  simple_field_create_textfield        ('node', $stat_type ['node_type'], $stat_type ['node_type'] . '_unit',    t ('Units'));
+  simple_field_create_entity_reference ('node', $stat_type ['node_type'], $stat_type ['node_type'] . '_subject', t ('Subject'), is_null ($stat_type ['subject_node_type']) ? array () : array ($stat_type ['subject_node_type']), 'node', 1);
+  simple_field_create_date_field       ('node', $stat_type ['node_type'], $stat_type ['node_type'] . '_date',    t ('Date'));
 
   // III. Call hook_stat_create_<stat_type_node_type>_stat_type_node_type () to add custom fields.
   $hook = 'stat_create_' . $stat_type ['node_type'] . '_stat_type_node_type';
-  watchdog (
-    'stat',
-    '[stat_create_stat_type_node_type] hook: @hook',
-    array (
-      '@hook' => $hook
-  ));
   module_invoke_all ($hook, $stat_type_node_type);
 
   // IV. Return the type definition.
@@ -252,16 +233,89 @@ function stat_create_stat_node ($stat_type, $name, $value, $unit, $date, $subjec
   // II. Call hook_stat_create_<stat_type_node_type>_stat_node () to set custom field values.
   module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_node', $stat);
 
-  watchdog (
-    'stat',
-    '[stat_create_stat_node] stat: <pre>@stat</pre>',
-    array (
-      '@stat' => print_r ($stat, true)
-  ));
-
   // III. Saves the newly created stat node.
   node_save ($stat);
   return $stat;
+}
+
+/**
+  @brief Returns an EntityFieldQuery that selects
+    stat nodes of the given type.
+  @param $stat_node_type (string)
+  @return (EntityFieldQuery) the query.
+*/
+function stat_node_query_create ($stat_node_type) {
+  $query = new EntityFieldQuery (); 
+  return $query->entityCondition ('entity_type', 'node')
+               ->entityCondition ('bundle', $stat_node_type);
+}
+
+/**
+  @brief Executes the given stat node select query.
+  @param $query (EntityFieldQuery) the query.
+  @return (array) the stat nodes. 
+*/
+function stat_node_query_execute ($query) {
+  $stat_nodes = array ();
+  $result = $query->execute ();
+  foreach ((array) $result ['node'] as $stat_node) {
+    $stat_nodes [] = node_load ($stat_node->nid);
+  }
+  return $stat_nodes;
+}
+
+/**
+  @brief Accepts a stat node select query and adds a title filter.
+  @param $query (EntityFieldQuery) the query.
+  @param $title (string) the title.
+  @return (EntityFieldQuery).
+*/
+function stat_node_query_add_title_filter ($query, $title) {
+  $query->propertyCondition ('title', $title);
+  watchdog (
+    'stat',
+    '[stat_node_query_add_title_filter] query: <pre>@query</pre>',
+    array (
+      '@query' => print_r ($query, true)
+  ));
+  return $query;
+}
+
+/**
+  @brief Accepts a stat node select query and adds a date filter.
+  @param $query (EntityFieldQuery) the query.
+  @param $date (string) the date.
+  @return (EntityFieldQuery).
+  @example '2013-04-13 00:00:00'.
+*/
+function stat_node_query_add_date_filter ($query, $date) {
+  $stat_node_type = $query->entityConditions ['bundle']['value'];
+  $query->fieldCondition ($stat_node_type . '_date', 'value', $date, '=');
+  return $query;
+}
+
+/**
+  @brief Accepts a stat node select query and adds a date year filter.
+  @param $query (EntityFieldQuery) the query.
+  @param $date (string) the date.
+  @return (EntityFieldQuery).
+*/
+function stat_node_query_add_year_filter ($query, $year) {
+  $stat_node_type = $query->entityConditions ['bundle']['value'];
+  $query->fieldCondition ($stat_node_type . '_date', 'value', "%$year%", 'like');
+  return $query;
+}
+
+/**
+  @brief Accepts a stat node select query and adds a date filter.
+  @param $query (EntityFieldQuery) the query.
+  @param $date (string) the date.
+  @return (EntityFieldQuery).
+*/
+function stat_node_query_add_subject_filter ($query, $subject) {
+  $stat_node_type = $query->entityConditions ['bundle']['value'];
+  $query->fieldCondition ($stat_node_type . '_subject', 'target_id', $subject, '=');
+  return $query;
 }
 
 /*
@@ -365,7 +419,6 @@ function stat_set_date ($node, $date) {
   @return (int) the year.
 */
 function stat_get_year ($node) {
-  // return date ('Y', strtotime (stat_get_date ($node)));
   $date = stat_get_date ($node);
   $year = date ('Y', strtotime ($date));
   return $year + 1;

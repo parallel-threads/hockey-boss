@@ -7,26 +7,27 @@
 
 /**
   @brief Creates a textarea field.
-  @param $type (object) the content type that the field will be added to.
+  @param $entity_type (string) the name of the entity type.
+  @param $bundle (string) the name of the entity bundle.
   @param $name (string) the field name.
   @param $label (string) the field label.
 */
-function simple_field_create_textarea ($type, $name, $label) {
+function simple_field_create_textarea ($entity_type, $bundle, $name, $label) {
   $field    = field_info_field($name);
-  $instance = field_info_instance('node', $name, $type->type);
+  $instance = field_info_instance($entity_type, $name, $bundle);
   if (empty($field)) {
     $field = array(
       'field_name'   => $name,
       'type'         => 'text_long',
-      'entity_types' => array('node'),
+      'entity_types' => array($entity_type),
     );  
     $field = field_create_field($field);
   }
   if (empty($instance)) {
     $instance = array(
       'field_name'  => $name,
-      'entity_type' => 'node',
-      'bundle'      => $type->type,
+      'entity_type' => $entity_type,
+      'bundle'      => $bundle,
       'label'       => $label,
       'widget'      => array('type' => 'text_textarea'),
       'display'     => array(
@@ -47,26 +48,27 @@ function simple_field_create_textarea ($type, $name, $label) {
 
 /**
   @brief Creates a text field.
-  @param $type (object) the content type that the field will be added to.
+  @param $entity_type (string) the name of the entity type.
+  @param $bundle (string) the name of the entity bundle.
   @param $name (string) the field name.
   @param $label (string) the field label.
 */
-function simple_field_create_textfield ($type, $name, $label) {
+function simple_field_create_textfield ($entity_type, $bundle, $name, $label) {
   $field    = field_info_field($name);
-  $instance = field_info_instance('node', $name, $type->type);
+  $instance = field_info_instance($entity_type, $name, $bundle);
   if (empty($field)) {
     $field = array(
       'field_name'   => $name,
       'type'         => 'text',
-      'entity_types' => array('node'),
+      'entity_types' => array($entity_type),
     );
     $field = field_create_field($field);
   }
   if (empty($instance)) {
     $instance = array(
       'field_name'  => $name,
-      'entity_type' => 'node',
-      'bundle'      => $type->type,
+      'entity_type' => $entity_type,
+      'bundle'      => $bundle,
       'label'       => $label,
       'widget'      => array('type' => 'text_textfield'),
       'display'     => array(
@@ -87,7 +89,8 @@ function simple_field_create_textfield ($type, $name, $label) {
 
 /**
   @brief Creates a term reference field.
-  @param $type (object) the content type.
+  @param $entity_type (string) the name of the entity type.
+  @param $bundle (string) the name of the entity bundle.
   @param $name (string) the field name.
   @param $label (string) the field label.
   @param $machineName (string) the vocabulary
@@ -96,14 +99,14 @@ function simple_field_create_textfield ($type, $name, $label) {
     cardinality. Default
     FIELD_CARDINALITY_UNLIMITED.
 */
-function simple_field_create_term_reference ($type, $name, $label, $machineName, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
+function simple_field_create_term_reference ($entity_type, $bundle, $name, $label, $machineName, $cardinality = FIELD_CARDINALITY_UNLIMITED) {
   $field    = field_info_field ($name);
-  $instance = field_info_instance ('node', $name, $type->type);
+  $instance = field_info_instance ($entity_type, $name, $bundle);
   if (empty ($field)) {
     field_create_field (array (
       'field_name'   => $name,
       'type'         => 'taxonomy_term_reference',
-      'entity_types' => array ('node'),
+      'entity_types' => array ($entity_type),
       'cardinality'  => $cardinality,
       'settings'     => array (
         'allowed_values' => array (
@@ -116,8 +119,8 @@ function simple_field_create_term_reference ($type, $name, $label, $machineName,
   if (empty ($instance)) {
     field_create_instance (array (
       'field_name'  => $name,
-      'entity_type' => 'node',
-      'bundle'      => $type->type,
+      'entity_type' => $entity_type,
+      'bundle'      => $bundle,
       'label'       => $label,
       'widget'      => array (
         'type' => 'options_select',
@@ -143,7 +146,8 @@ function simple_field_create_term_reference ($type, $name, $label, $machineName,
 
 /**
   @brief Creats an entity reference field.
-  @param $type (object) the content type.
+  @param $entity_type (string) the name of the entity type.
+  @param $bundle (string) the name of the entity bundle.
   @param $name (string) the field name.
   @param $label (string) the field label.
   @param $target_bundles (array) the target bundles.
@@ -152,15 +156,15 @@ function simple_field_create_term_reference ($type, $name, $label, $machineName,
     cardinality. Default
     FIELD_CARDINALITY_UNLIMITED.
 */
-function simple_field_create_entity_reference ($type, $name, $label, $target_bundles = array (), $target_type = 'node', $cardinality = FIELD_CARDINALITY_UNLIMITED) {
+function simple_field_create_entity_reference ($entity_type, $bundle, $name, $label, $target_bundles = array (), $target_type = 'node', $cardinality = FIELD_CARDINALITY_UNLIMITED) {
   module_load_include ('module', 'entity_reference');
   $field    = field_info_field ($name);
-  $instance = field_info_instance ('node', $name, $type->type);
+  $instance = field_info_instance ($entity_type, $name, $bundle);
   if (empty ($field)) {
     field_create_field (array (
       'field_name'   => $name,
       'type'         => 'entityreference',
-      'entity_types' => array ('node'),
+      'entity_types' => array ($entity_type),
       'cardinality'  => $cardinality,
       'settings'     => array (
         'target_type'      => $target_type,
@@ -172,8 +176,8 @@ function simple_field_create_entity_reference ($type, $name, $label, $target_bun
   if (empty ($instance)) {
     field_create_instance (array (
       'field_name'   => $name,
-      'entity_type'  => 'node',
-      'bundle'       => $type->type,
+      'entity_type'  => $entity_type,
+      'bundle'       => $bundle,
       'label'        => $label,
       'widget'       => array ('type' => 'entityreference_autocomplete'),
       'display'      => array (
@@ -188,26 +192,27 @@ function simple_field_create_entity_reference ($type, $name, $label, $target_bun
 /**
   @brief Creates a date field and adds it to the
     content type.
-  @param $type (object) the content type.
+  @param $entity_type (string) the name of the entity type.
+  @param $bundle (string) the name of the entity bundle.
   @param $name (string) the field name.
   @param $label (string) the field label.
 */
-function simple_field_create_date_field ($type, $name, $label) {
+function simple_field_create_date_field ($entity_type, $bundle, $name, $label) {
   $field    = field_info_field ($name);
-  $instance = field_info_instance ('node', $name, $type->type);
+  $instance = field_info_instance ($entity_type, $name, $bundle);
   if (empty ($field)) {
     field_create_field (array (
       'field_name'   => $name,
       'type'         => 'date',
-      'entity_types' => array ('node'),
+      'entity_types' => array ($entity_type),
       'cardinality'  => 1
     ));
   }
   if (empty ($instance)) {
     field_create_instance (array (
       'field_name'  => $name,
-      'entity_type' => 'node',
-      'bundle'      => $type->type,
+      'entity_type' => $entity_type,
+      'bundle'      => $bundle,
       'label'       => $label,
       'widget'      => array (
         'type' => 'date_select',
@@ -233,7 +238,8 @@ function simple_field_create_date_field ($type, $name, $label) {
 
 /**
   @brief Creats a Relation Add field.
-  @param $type (object) the content type.
+  @param $entity_type (string) the name of the entity type.
+  @param $bundle (string) the name of the entity bundle.
   @param $name (string) the field name.
   @param $label (string) the field label.
   @param $relation_type (string) the relation type.
@@ -246,15 +252,9 @@ function simple_field_create_date_field ($type, $name, $label) {
     the entity that this field will be attached to.
     Default 'node'.
 */
-function simple_field_create_relation_field ($type, $name, $label, $relation_type, $cardinality = FIELD_CARDINALITY_UNLIMITED, $entity_type = 'node') {
-  watchdog (
-    'simple_field',
-    '[simple_field_create_relation_field] type: <pre>@type</pre>',
-    array (
-      '@type' => print_r ($type, true)
-  ));
+function simple_field_create_relation_field ($entity_type, $bundle, $name, $label, $relation_type, $cardinality = FIELD_CARDINALITY_UNLIMITED, $entity_type = 'node') {
   $field    = field_info_field($name);
-  $instance = field_info_instance($entity_type, $name, $type->type);
+  $instance = field_info_instance($entity_type, $name, $bundle);
   if (empty($field)) {
     $field = array(
       'field_name'   => $name,
@@ -267,7 +267,7 @@ function simple_field_create_relation_field ($type, $name, $label, $relation_typ
     $instance = array(
       'field_name'  => $name,
       'entity_type' => $entity_type,
-      'bundle'      => $type->type,
+      'bundle'      => $bundle,
       'label'       => $label,
       'widget'      => array(
         'type'     => 'relation_add',
@@ -365,15 +365,64 @@ function simple_field_get_entity_reference_target_id ($node, $field_name) {
   @param $field_name (string) the field name.
   @return (array) the entity ids.
 */
-function simple_field_get_relation_endpoint_entity_ids ($node, $field_name) {
-  $entity_ids = array ();
+function simple_field_get_relation_endpoints ($node, $field_name) {
+  $endpoints = array ();
   foreach (simple_field_get_field_values ($node, $field_name) as $field_value) {
     foreach ($field_value ['endpoints']['und'] as $endpoint) {
-      $entity_ids [] = $endpoint ['entity_id'];
+      $endpoints [] = $endpoint;
     }
+  }
+  return $endpoints;
+}
+
+/**
+  @brief Accepts a node and a relation add field
+    name and returns the source and target entity
+    ids grouped together.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (array) the entity ids.
+*/
+function simple_field_get_relation_entity_ids ($node, $field_name) {
+  $entity_ids = array ();
+  $endpoints = (array) simple_field_get_relation_endpoints ($node, $field_name);
+  for ($i = 0; $i < count ($endpoints); $i += 2) {
+    $entity_ids [] = array (
+      $endpoints [$i]['entity_id'],
+      $endpoints [$i + 1]['entity_id']
+    );
   }
   return $entity_ids;
 }
+
+/**
+  @brief Accepts a node and a relation add field name and returns the source entity ids of the referenced fields.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (array) the source ids.
+*/
+function simple_field_get_relation_source_entity_ids ($node, $field_name) {
+  $target_ids = array ();
+  foreach ((array) simple_field_get_relation_entity_ids ($node, $field_name) as $endpoint_entity_ids) {
+    $target_ids [] = $endpoint_entity_ids [0];
+  }
+  return $target_ids;
+}
+
+/**
+  @brief Accepts a node and a relation add field name and returns the target entity ids of the referenced fields.
+  @param $node (node) the node.
+  @param $field_name (string) the field name.
+  @return (array) the target ids.
+*/
+function simple_field_get_relation_target_entity_ids ($node, $field_name) {
+  $target_ids = array ();
+  foreach ((array) simple_field_get_relation_entity_ids ($node, $field_name) as $endpoint_entity_ids) {
+    $target_ids [] = $endpoint_entity_ids [1];
+  }
+  return $target_ids;
+}
+
 
 /**
   @brief Accepts a node and a relation add field and returns the source entity id of its first endpoint.
@@ -382,8 +431,8 @@ function simple_field_get_relation_endpoint_entity_ids ($node, $field_name) {
   @return (int) the entity id.
 */
 function simple_field_get_relation_source_entity_id ($node, $field_name) {
-  $entity_ids = simple_field_get_relation_endpoint_entity_ids ($node, $field_name);
-  return empty ($entity_ids) ? null : $entity_ids [0];
+  $endpoints = simple_field_get_relation_entity_ids ($node, $field_name);
+  return empty ($entity_ids) ? null : $endpoints [0][0];
 }
 
 /**
@@ -393,6 +442,6 @@ function simple_field_get_relation_source_entity_id ($node, $field_name) {
   @return (int) the entity id.
 */
 function simple_field_get_relation_target_entity_id ($node, $field_name) {
-  $entity_ids = simple_field_get_relation_endpoint_entity_ids ($node, $field_name);
-  return empty ($entity_ids) ? null : $entity_ids [1];
+  $endpoints = simple_field_get_relation_entity_ids ($node, $field_name);
+  return empty ($entity_ids) ? null : $endpoints [0][1];
 }

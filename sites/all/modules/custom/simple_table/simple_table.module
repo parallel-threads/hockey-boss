@@ -264,12 +264,7 @@ class SimpleTable {
   }
 
   /// The submit callback.
-  public static function process_table_form ($form, $form_state) {
-    watchdog (
-      'simple_table',
-      '[SimpleTable::process_table]'
-    );
-  }
+  public static function process_table_form ($form, $form_state) {}
 
   /**
     @brief Accepts a form and a form state array and
@@ -412,12 +407,6 @@ class SimpleTable {
     function so that it can be referenced.
 */
 function simple_table_get_form ($form, $form_state) {
-  watchdog (
-    'simple_table',
-    '[simple_table_get_form] form state: <pre>@form_state</pre>',
-    array (
-      '@form_state' => print_r ($form_state, true)
-  ));
   $table = $form_state ['build_info']['args'][0];
   return $table->get_form ($form, $form_state, $table);
 }
@@ -438,16 +427,6 @@ function simple_table_sort () {
   // Create and return the new form.
   $new_form = drupal_build_form ('simple_table_get_form', $form_state);
   
-  watchdog (
-    'simple_table',
-    '[simple_table_sort] form: <pre>@form</pre> form state: <pre>@form_state</pre> table: <pre>@table</pre> new form: <pre>@new_form</pre>',
-    array (
-      '@form'       => print_r ($form, true),
-      '@form_state' => print_r ($form_state, true),
-      '@table'      => print_r ($table, true),
-      '@new_form'   => print_r ($new_form, true)
-  ));
-
   return $new_form;
 }
 
@@ -461,13 +440,5 @@ function simple_table_sort () {
 function simple_table_form_submit ($form, $form_state) {
   $table = $form_state ['build_info']['args'][0];
   $new_form = $table->process_table_form ($form, $form_state, $table);
-  watchdog (
-    'simple_table',
-    '[simple_table_form_submit] form: <pre>@form</pre> form state: <pre>@form_state</pre> new form: <pre>@new_form</pre>',
-    array ( 
-      '@form'       => print_r ($form, true),
-      '@form_state' => print_r ($form_state, true),
-      '@new_form'   => print_r ($new_form, true)
-  ));
 }
 

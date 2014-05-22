@@ -52,7 +52,7 @@ function hockey_boss_stat_get_stat_types () {
 */
 function hockey_boss_stat_stat_create_hockey_boss_stat_pgs_stat_type_node_type ($stat_type_node_type) {
   module_load_include ('inc', 'hockey_boss');
-  simple_field_create_entity_reference ($stat_type_node_type, $stat_type_node_type->type . '_game', t ('Game'), array (hockey_boss_GAME_TYPE), 'node', 1);
+  simple_field_create_entity_reference ('node', $stat_type_node_type->type, $stat_type_node_type->type . '_game', t ('Game'), array (hockey_boss_GAME_TYPE), 'node', 1);
 }
 
 /**

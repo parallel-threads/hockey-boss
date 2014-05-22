@@ -20,6 +20,9 @@ function hockey_boss_table_block_info () {
     'hockey_boss_table_tr' => array (
       'info' => t ('Displays the team roster.')
     ),
+    'hockey_boss_table_lt' => array (
+      'info' => t ('Displays the current league\'s teams.')
+    ),
     'hockey_boss_table_pc' => array (
       'info' => t ('Displays the player comparison table.')
   ));
@@ -59,6 +62,15 @@ function hockey_boss_table_block_view ($delta = '') {
         return array (
           'subject' => '',
           'content' => drupal_get_form ('simple_table_get_form', new TRTable ($team))
+        );
+      }
+      break;
+    case 'hockey_boss_table_lt':
+      $league = node_load (arg (1));
+      if ($league && $league->type == hockey_boss_LEAGUE_PROFILE_TYPE) {
+        return array (
+          'subject' => '',
+          'content' => drupal_get_form ('simple_table_get_form', new LTTable ($league))
         );
       }
       break;
