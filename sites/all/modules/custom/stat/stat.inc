@@ -18,18 +18,18 @@
       'subject_node_type' => <the machine name of the node type referenced by the subject field>
     )
 */
-function stat_create_stat_type ($stat_type) {
+function stat_type_create ($stat_type) {
   drupal_write_record ('stat_stat_type', $stat_type);
-  stat_create_stat_type_node_type ($stat_type);
+  stat_node_type_create ($stat_type);
 };
 
 /**
   @brief Creates the given stat types.
   @param $stat_types (array) the stat types.
 */
-function stat_create_stat_types ($stat_types) {
+function stat_type_create_multiple ($stat_types) {
   foreach ((array) $stat_types as $stat_type) {
-    stat_create_stat_type ($stat_type);
+    stat_type_create ($stat_type);
   }
 }
 
@@ -37,9 +37,29 @@ function stat_create_stat_types ($stat_types) {
   @brief Returns a database query object that will retrieve stat type records.
   @return (SelectQuery) the query object.
 */
-function stat_stat_type_select () {
+function stat_type_query_create () {
   return db_select ('{stat_stat_type}', 'tbl')
          ->fields  ('tbl', array ('name', 'description', 'node_type', 'subject_node_type'));
+}
+
+/**
+  @brief Accepts a stat type select query and adds a node type filter.
+  @param $query (SelectQuery) the query.
+  @param $node_type (string) the node type.
+*/
+function stat_type_query_add_node_type_filter ($query, $node_type) {
+  $query->condition ('node_type', $node_type);
+  return $query;
+}
+
+/**
+  @brief Accepts a stat type select query and adds a subject node type filter.
+  @param $query (SelectQuery) the query.
+  @param $subject_node_type (string) the subject node type.
+*/
+function stat_type_query_add_subject_node_type_filter ($query, $subject_node_type) {
+  $query->condition ('subject_node_type', $subject_node_type);
+  return $query;
 }
 
 /**
@@ -47,7 +67,7 @@ function stat_stat_type_select () {
   @param $record (object) the record.
   @return (array) the stat type.
 */
-function stat_get_stat_type_from_record ($record) {
+function stat_type_from_record ($record) {
   return array (
     'name'              => $record->name,
     'description'       => $record->description,
@@ -61,22 +81,31 @@ function stat_get_stat_type_from_record ($record) {
   @param $records (DatabaseConnection_mysql)
   @return (array) the stat types.
 */
-function stat_get_stat_types_from_records ($records) {
+function stat_type_from_records ($records) {
   $stat_types = array ();
   foreach ($records as $record) {
-    $stat_types [] = stat_get_stat_type_from_record ($record);
+    $stat_types [] = stat_type_from_record ($record);
   }
   return $stat_types;
+}
+
+/**
+  @brief Accepts a stat type query, executes the query, and returns the results.
+  @param $query (SelectQuery) the query.
+  @return (array) the stat types.
+*/
+function stat_type_query_execute ($query) {
+  $results = $query->execute ();
+  return stat_type_from_records ($results);
 }
 
 /**
   @brief Returns all of the stat types.
   @return (array) the stat types.
 */
-function stat_get_all_stat_types () {
-  return stat_get_stat_types_from_records (
-    stat_stat_type_select ()
-    ->execute ());
+function stat_type_get_all () {
+  $query = stat_type_query_create ();
+  return stat_type_query_execute ($query);
 }
 
 /**
@@ -84,28 +113,28 @@ function stat_get_all_stat_types () {
   @param $node_type (string) the node type.
   @return (array) the stat types.
 */
-function stat_get_stat_types_by_node_type ($node_type) {
-  return stat_get_stat_types_from_records (
-    stat_stat_type_select ()
-    ->condition ('subject_node_type', $node_type)
-    ->execute   ());
+function stat_type_get_by_node_type ($node_type) {
+  $query = stat_type_query_create ();
+  $query = stat_type_query_add_node_type_filter ($query, $node_type);
+  return stat_type_query_execute ($query);
 }
 
 /**
-  @brief Implements hook_node_type_delete ().
-  @details
-    Deletes the stat type associated with the node
-    type that is being deleted.
+  @brief Accepts a node type and returns those stat types that reference the given node type.
+  @param $subject_node_type (string) the subject node type.
+  @return (array) the stat types.
 */
-function stat_node_type_delete ($info) {
-  stat_delete_stat_types (stat_get_stat_types_by_node_type ($info->type));
+function stat_type_get_by_subject_node_type ($subject_node_type) {
+  $query = stat_type_query_create ();
+  $query = stat_type_query_add_subject_node_type_filter ($query, $subject_node_type);
+  return stat_type_query_execute ($query);
 }
 
 /**
   @brief Deletes the given stat type.
   @param $stat_type (array) the stat type.
 */
-function stat_delete_stat_type ($stat_type) {
+function stat_type_delete ($stat_type) {
   // I. Delete the stat type's node type and stat nodes.
   stat_delete_stat_type_node_type ($stat_type);
 
@@ -119,15 +148,16 @@ function stat_delete_stat_type ($stat_type) {
   @brief Deletes the given stat types.
   @param $stat_types (array) the stat types.
 */
-function stat_delete_stat_types ($stat_types) {
+function stat_type_delete_multiple ($stat_types) {
   foreach ((array) $stat_types as $stat_type) {
-    stat_delete_stat_type ($stat_type);
+    stat_type_delete ($stat_type);
   }
 }
 
 /// Deletes all of the stat types.
-function stat_delete_all_stat_types () {
-  stat_delete_stat_types (stat_get_all_stat_types ());
+function stat_type_delete_all () {
+  stat_type_delete_multiple (
+    stat_type_get_all ());
 }
 
 // ----- II. Stat Type Node Types -----
@@ -137,7 +167,7 @@ function stat_delete_all_stat_types () {
   @param $stat_type (array) a stat type.
   @return (object) a content type.
 */
-function stat_get_stat_type_node_type ($stat_type) {
+function stat_type_get_node_type ($stat_type) {
   $t = get_t (); 
   return node_type_set_defaults (
     array (
@@ -155,13 +185,21 @@ function stat_get_stat_type_node_type ($stat_type) {
 }
 
 /**
+  @brief Accepts a stat type and deletes its node type.
+  @param $stat_type (array) the stat type.
+*/
+function stat_type_delete_node_type ($stat_type) {
+  stat_node_type_delete ($stat_type ['node_type']);
+}
+
+/**
   @brief Creates a stat type.
   @details This function creates a stat type node type and defines the core stat fields.
   @param $stat_type (array) the stat type.
 */
-function stat_create_stat_type_node_type ($stat_type) {
+function stat_type_create_node_type ($stat_type) {
   // I. Create the content type.
-  $stat_type_node_type = stat_get_stat_type_node_type ($stat_type);
+  $stat_type_node_type = stat_type_get_node_type ($stat_type);
   node_type_save ($stat_type_node_type);
 
   // II. Create core fields.
@@ -183,31 +221,75 @@ function stat_create_stat_type_node_type ($stat_type) {
     creates content types that represent each.
   @param $stat_types (array) the stat types.
 */
-function stat_create_stat_types_node_types ($stat_types) {
+function stat_type_create_node_types ($stat_types) {
   foreach ((array) $stat_types as $stat_type) {
-    stat_create_stat_type_node_type ($stat_type);
+    stat_type_create_node_type ($stat_type);
   }
-}
-
-/**
-  @brief Accepts a stat type and deletes its node type.
-  @param $stat_type (array) the stat type.
-*/
-function stat_delete_stat_type_node_type ($stat_type) {
-  stat_delete_node_type ($stat_type ['node_type']);
 }
 
 /**
   @brief Accepts a set of stat types and deletes them.
   @param $stat_types (array) the stat types.
 */
-function stat_delete_stat_types_node_types ($stat_types) {
+function stat_type_delete_node_types ($stat_types) {
   foreach ((array) $stat_types as $stat_type) {
-    stat_delete_stat_type_node_type ($stat_type);
+    stat_type_delete_node_type ($stat_type);
   }
 }
 
-// ----- III. Stat Nodes -----
+/**
+  @brief Deletes every node that belongs to a given type and the type itself.
+  @param $type (string) the node type.
+*/
+function stat_delete_node_type ($node_type) {
+  // I. Delete the node type nodes.
+  stat_node_delete_all ($node_type);
+
+  // II. Delete the node type.
+  node_type_delete ($node_type);
+}
+
+// ----- III. Stats -----
+
+/**
+  @brief Creates a stat object.
+  @param $name (string) the human readable stat name.
+  @param $node_type (string) the stat node type.
+  @param $value (string) the stat value.
+  @param $unit  (string) the units of measure.
+  @param $date  (string) the stat date.
+  @param $subject_nid (int) the stat subject.
+  @return (node) the stat node with core fields set.
+*/
+function stat_create ($name, $node_type, $value, $unit, $date, $subject_nid) {
+  return array (
+    'name'        => $name,
+    'node_type'   => $node_type,
+    'value'       => $value,
+    'unit'        => $unit,
+    'date'        => $date,
+    'subject_nid' => $subject_nid
+  );
+}
+
+/**
+  Accepts a stat node and returns a stat object.
+  @param $stat_node (node) a stat node.
+  @return (array) the stat.
+*/
+function stat_from_stat_node ($stat_node) {
+  return array (
+    'nid'         => $stat_node->nid,
+    'name'        => $stat_node->title,
+    'node_type'   => $stat_node->type,
+    'value'       => stat_node_get_value ($stat_node),
+    'unit'        => stat_node_get_unit ($stat_node),
+    'date'        => stat_node_get_date ($stat_node),
+    'subject_nid' => stat_node_get_subject_nid ($stat_node)
+  );
+}
+
+// ----- IV. Stat Nodes -----
 
 /**
   @brief Accepts a information about a stat and returns a node object with the core fields set.
@@ -219,23 +301,23 @@ function stat_delete_stat_types_node_types ($stat_types) {
   @param $subject_nid (int) the stat subject.
   @return (node) the stat node with core fields set.
 */
-function stat_create_stat_node ($stat_type, $name, $value, $unit, $date, $subject_nid) {
+function stat_node_create ($stat_type, $name, $value, $unit, $date, $subject_nid) {
   // I. Create the stat node and set the core fields.
-  $stat = new stdClass ();
-  $stat->type = $stat_type ['node_type'];
-  node_object_prepare ($stat);
-  $stat->title = $name;
-  stat_set_value    ($stat, $value);
-  stat_set_unit     ($stat, $unit);
-  stat_set_date     ($stat, $date);
-  stat_set_subject  ($stat, $subject_nid);
+  $stat_node = new stdClass ();
+  $stat_node->type = $stat_type ['node_type'];
+  node_object_prepare ($stat_node);
+  $stat_node->title = $name;
+  stat_node_set_value    ($stat_node, $value);
+  stat_node_set_unit     ($stat_node, $unit);
+  stat_node_set_date     ($stat_node, $date);
+  stat_node_set_subject  ($stat_node, $subject_nid);
 
   // II. Call hook_stat_create_<stat_type_node_type>_stat_node () to set custom field values.
-  module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_node', $stat);
+  module_invoke_all ('stat_create_' . $stat_type ['node_type'] . '_stat_node', $stat_node);
 
   // III. Saves the newly created stat node.
-  node_save ($stat);
-  return $stat;
+  node_save ($stat_node);
+  return $stat_node;
 }
 
 /**
@@ -258,8 +340,10 @@ function stat_node_query_create ($stat_node_type) {
 function stat_node_query_execute ($query) {
   $stat_nodes = array ();
   $result = $query->execute ();
-  foreach ((array) $result ['node'] as $stat_node) {
-    $stat_nodes [] = node_load ($stat_node->nid);
+  if (isset ($result ['node'])) {
+    foreach ((array) $result ['node'] as $stat_node) {
+      $stat_nodes [] = node_load ($stat_node->nid);
+    }
   }
   return $stat_nodes;
 }
@@ -272,12 +356,6 @@ function stat_node_query_execute ($query) {
 */
 function stat_node_query_add_title_filter ($query, $title) {
   $query->propertyCondition ('title', $title);
-  watchdog (
-    'stat',
-    '[stat_node_query_add_title_filter] query: <pre>@query</pre>',
-    array (
-      '@query' => print_r ($query, true)
-  ));
   return $query;
 }
 
@@ -297,7 +375,7 @@ function stat_node_query_add_date_filter ($query, $date) {
 /**
   @brief Accepts a stat node select query and adds a date year filter.
   @param $query (EntityFieldQuery) the query.
-  @param $date (string) the date.
+  @param $year (int) the year.
   @return (EntityFieldQuery).
 */
 function stat_node_query_add_year_filter ($query, $year) {
@@ -309,105 +387,83 @@ function stat_node_query_add_year_filter ($query, $year) {
 /**
   @brief Accepts a stat node select query and adds a date filter.
   @param $query (EntityFieldQuery) the query.
-  @param $date (string) the date.
+  @param $subject_nid (int) the subject node id.
   @return (EntityFieldQuery).
 */
-function stat_node_query_add_subject_filter ($query, $subject) {
+function stat_node_query_add_subject_filter ($query, $subject_nid) {
   $stat_node_type = $query->entityConditions ['bundle']['value'];
-  $query->fieldCondition ($stat_node_type . '_subject', 'target_id', $subject, '=');
+  $query->fieldCondition ($stat_node_type . '_subject', 'target_id', $subject_nid, '=');
   return $query;
 }
 
-/*
-  @brief Returns the node id of every node that has the given type.
-  @param $type (string) the node type.
-  @return (array) the node ids.
+/**
+  @brief Accepts a node id and returns those stat
+    nodes that reference the given node in their
+    subject fields.
+  @param $stat_node_type (string) the stat node type.
+  @param $subject_nid (int) the subject node id.
+  @return (array) the stat nodes.
 */
-function stat_get_nodes ($type) {
-  $records = db_select   ('{node}', 'tbl')
-             ->fields    ('tbl', array ('nid'))
-             ->condition ('type', $type)
-             ->execute   ();
+function stat_node_get_by_subject ($stat_node_type, $subject_nid) {
+  $query = stat_node_query_create ($stat_node_type);
+  $query = stat_node_query_add_subject_filter ($query, $subject_nid);
+  return stat_node_query_execute ($query);
+}
 
-  $nids = array ();
-  foreach ($records as $record) {
-    $nids [] = $record->nid;
-  }
-  return $nids;
+/**
+  @brief Accepts a stat node type and returns every stat node that belongs to the given type.
+  @param $stat_node_type (string) the stat node type.
+  @return (array) the stat nodes.
+*/
+function stat_node_get_all ($stat_node_type) {
+  $query = stat_node_query_create ($stat_node_type);
+  return stat_node_query_execute ($query);
 }
 
 /**
   @brief Deletes every node that belongs to the given type.
   @param $type (string) the node type.
 */
-function stat_delete_nodes ($type) {
-  foreach (stat_get_nodes ($type) as $nid) {
-    node_delete ($nid);
+function stat_node_delete_all ($stat_node_type) {
+  foreach (stat_node_get_all ($stat_node_type) as $stat_node) {
+    node_delete ($stat_node->nid);
   }
-}
-
-/**
-  @brief Deletes every node that belongs to a given type and the type itself.
-  @param $type (string) the node type.
-*/
-function stat_delete_node_type ($type) {
-  // I. Delete the node type nodes.
-  stat_delete_nodes ($type);
-
-  // II. Delete the node type.
-  node_type_delete ($type);
-}
-
-/**
-  @brief Accepts an entity id and returns those
-    stats that reference the entity that has the
-    given id.
-*/
-function stat_get_stats_by_subject_nid ($type, $entity_id) {
-  $stats = array ();
-  foreach ((array) stat_get_nodes ($type) as $stat_nid) {
-    $stat = node_load ($stat_nid);
-    if ($entity_id == stat_get_subject_nid ($stat)) {
-      $stats[] = $stat;
-    }
-  }
-  return $stats;
 }
 
 /**
   @brief Accepts a stat node and returns its subject.
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @return (int) the subject entity id.
 */
-function stat_get_subject_nid ($node) {
-  return $node->{$node->type . '_subject'}['und'][0]['target_id'];
+function stat_node_get_subject_nid ($stat_node) {
+  return $stat_node->{$stat_node->type . '_subject'}['und'][0]['target_id'];
 }
 
 /**
   @brief Accepts a stat node and a subject id and updates the stat value.
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @param $subject_id (string) the subject entity id.
 */
-function stat_set_subject ($node, $subject_id) {
-  $node->{$node->type . '_subject'}['und'][0]['target_id'] = $subject_id;
+function stat_node_set_subject ($stat_node, $subject_id) {
+  $stat_node->{$stat_node->type . '_subject'}['und'][0]['target_id'] = $subject_id;
 } 
 
 /**
   @brief Accepts a stat node and returns its date.
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @return (string) the date.
 */
-function stat_get_date ($node) {
-  return $node->{$node->type . '_date'}['und'][0]['value'];
+function stat_node_get_date ($stat_node) {
+  return $stat_node->{$stat_node->type . '_date'}['und'][0]['value'];
 }
 
 /**
   @brief Accepts a stat node and a date and updates the date value.
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @param $date (string) the date value.
 */
-function stat_set_date ($node, $date) {
-  $node->{$node->type . '_date'}['und'][0] = array (
+function stat_node_set_date ($stat_node, $date) {
+  $stat_node->{$stat_node->type . '_date'}['und'][0] = array (
     'value'     => $date,
     'date_type' => 'date'
   );
@@ -415,40 +471,40 @@ function stat_set_date ($node, $date) {
 
 /**
   @brief Accepts a stat node and returns its year.
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @return (int) the year.
 */
-function stat_get_year ($node) {
-  $date = stat_get_date ($node);
+function stat_node_get_year ($stat_node) {
+  $date = stat_get_date ($stat_node);
   $year = date ('Y', strtotime ($date));
   return $year + 1;
 }
 
 /**
   @brief Accepts a stat node and returns its value. 
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @return (string) the stat value.
 */
-function stat_get_value ($node) {
-  return $node->{$node->type . '_value'}['und'][0]['value'];
+function stat_node_get_value ($stat_node) {
+  return $stat_node->{$stat_node->type . '_value'}['und'][0]['value'];
 }
 
 /**
   @brief Accepts a stat node and a value and updates the stats value.
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @param $value (string) the stat value.
 */
-function stat_set_value ($node, $value) {
-  $node->{$node->type . '_value'}['und'][0]['value'] = $value;
+function stat_node_set_value ($stat_node, $value) {
+  $stat_node->{$stat_node->type . '_value'}['und'][0]['value'] = $value;
 }
 
 /**
   @brief Accepts a stat node and returns its units. 
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @return (string) the stat units.
 */
-function stat_get_unit ($node) {
-  return $node->{$node->type . '_unit'}['und'][0]['value'];
+function stat_node_get_unit ($stat_node) {
+  return $stat_node->{$stat_node->type . '_unit'}['und'][0]['value'];
 }
 
 /**
@@ -456,6 +512,6 @@ function stat_get_unit ($node) {
   @param $node (object) the stat node.
   @param $unit (string) the stat unit.
 */
-function stat_set_unit ($node, $unit) {
-  $node->{$node->type . '_unit'}['und'][0]['value'] = $unit;
+function stat_node_set_unit ($stat_node, $unit) {
+  $stat_node->{$stat_node->type . '_unit'}['und'][0]['value'] = $unit;
 }

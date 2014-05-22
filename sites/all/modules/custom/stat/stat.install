@@ -56,7 +56,7 @@ function stat_install () {
 */
 function stat_uninstall () {
   module_load_include ('inc', 'stat');
-  stat_delete_all_stat_types ();
+  stat_type_delete_all ();
   drupal_set_message ('Deleted all of the stat types and stat nodes.');
 }
 

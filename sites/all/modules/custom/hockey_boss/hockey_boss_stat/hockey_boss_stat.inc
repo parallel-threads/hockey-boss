@@ -57,11 +57,11 @@ function hockey_boss_stat_stat_create_hockey_boss_stat_pgs_stat_type_node_type (
 
 /**
   @brief Accepts a Player Game Stat node and returns its game node id.
-  @param $node (object) the stat node.
+  @param $stat_node (object) the stat node.
   @return (int) the game node id.
 */
-function hockey_boss_stat_pgs_get_game ($node) {
-  return $node->{$node->type . '_game'}['und'][0]['target_id'];
+function hockey_boss_stat_pgs_get_game ($stat_node) {
+  return $stat_node->{$stat_node->type . '_game'}['und'][0]['target_id'];
 }
 
 /**
@@ -71,18 +71,18 @@ function hockey_boss_stat_pgs_get_game ($node) {
   @param $node (object) the stat node.
   @param $game_nid (int) the game node id.
 */
-function hockey_boss_stat_pgs_set_game ($node, $game_nid) {
-  $node->{$node->type . '_game'}['und'][0]['target_id'] = $game_nid;
+function hockey_boss_stat_pgs_set_game ($stat_node, $game_nid) {
+  $stat_node->{$stat_node->type . '_game'}['und'][0]['target_id'] = $game_nid;
 }
 
 /// Creates the stat types defined by this module.
 function hockey_boss_stat_create_stat_types () {
   module_load_include ('inc', 'stat');
-  stat_create_stat_types (hockey_boss_stat_get_stat_types ());
+  stat_type_create_multiple (hockey_boss_stat_get_stat_types ());
 }
 
 /// Deletes the stat types defined by this module.
 function hockey_boss_stat_delete_stat_types () {
   module_load_include ('inc', 'stat');
-  stat_delete_stat_types (hockey_boss_stat_get_stat_types ());
+  stat_type_delete_multiple (hockey_boss_stat_get_stat_types ());
 }
