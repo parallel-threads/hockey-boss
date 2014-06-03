@@ -6,7 +6,105 @@
     provides an API for creating/modifying them.
 */
 
-// ----- I. Content Types -----
+// ----- I. Vocabularies -----
+
+/// The Player Position vocabulary name.
+define ('hockey_boss_PLAYER_POSITION_VOCAB', 'hockey_boss_player_position');
+
+/// The Team Age Group vocabulary name.
+define ('hockey_boss_TEAM_AGE_GROUP_VOCAB', 'hockey_boss_team_age_group');
+
+/// The core vocabularies.
+function hockey_boss_vocabularies () {
+  return array (
+    array (
+      'name'         => t ('Player Position'),
+      'machine_name' => hockey_boss_PLAYER_POSITION_VOCAB,
+      'description'  => t ('The player positions.')
+    ),
+    array (
+      'name'         => t ('Team Age Group'),
+      'machine_name' => hockey_boss_TEAM_AGE_GROUP_VOCAB,
+      'description'  => t ('The team age group.')
+  ));
+}
+
+/**
+  @brief imports the taxonomy terms listed in the
+    CSV file that is referenced by the given url
+    into the vocabulary that has the given vid.
+  @param $vid (integer) the vocabulary id.
+  @param $url (string) the CSV file url.
+  @return (array) an error description or nothing.
+*/
+function hockey_boss_import_terms ($vid, $url) {
+  module_load_include ('inc', 'taxonomy_csv', 'import/taxonomy_csv.import.api');
+
+  return taxonomy_csv_import (array (
+    'import_format' => 'tree',
+    'translate_by' => 'name',
+    'translate_languages' => array (), 
+    'keep_order' => 0,
+    'source_choice' => 'url',
+    'filter_format' => 'plain_text',
+    'filter_format_custom' => 'none',
+    'check_line' => 1,
+    'check_utf8' => 1,
+    'locale_custom' => '', 
+    'vocabulary_target' => 'existing',
+    'vocabulary_id' => $vid,
+    'i18n_mode' => 0,
+    'language' => 'und',
+    'delete_terms' => 1,
+    'check_hierarchy' => 1,
+    'set_hierarchy' => 2,
+    'update_or_ignore' => 'update',
+    'result_stats' => 'result_stats',
+    'result_terms' => 'result_terms',
+    'result_level' => 'notices',
+    'result_type' => 'by_message',
+    'delimiter' => ',',
+    'enclosure' => '"',
+    'vocabulary_language' => 'und',
+    'url' => $url,
+    'check_options' => '', 
+    'result_display' => 1
+  )); 
+}
+
+/**
+  @brief Creates a new vocabulary.
+  @param $vocab_array (array) a vocabulary array.
+*/
+function hockey_boss_create_vocabulary ($vocab_array) {
+  if (!taxonomy_vocabulary_machine_name_load ($vocab_array ['machine_name'])) {
+    // I. create the vocabulary.
+    taxonomy_vocabulary_save ((object) $vocab_array);
+    
+    // II. import the terms if given.
+    if ($vocab_array ['url']) {
+      $vocab = taxonomy_vocabulary_machine_name_load ($vocab_array ['machine_name']);
+      hockey_boss_import_terms ($vocab->vid, $vocab_array ['url']);
+    }
+  }
+}
+
+/// Creates the core vocabularies.
+function hockey_boss_create_vocabularies () {
+  foreach (hockey_boss_vocabularies () as $vocab) {
+    hockey_boss_create_vocabulary ($vocab);
+  }
+}
+
+/// Deletes the core vocabularies.
+function hockey_boss_delete_vocabularies () {
+  foreach (hockey_boss_vocabularies () as $vocab_array) {  
+    $vocab = taxonomy_vocabulary_machine_name_load ($vocab_array ['machine_name']);
+    taxonomy_vocabulary_delete ($vocab->vid);
+  }
+}
+
+// ----- II. Content Types -----
 
 /// The Coach Profile content type name.
 define ('hockey_boss_COACH_PROFILE_TYPE', 'hockey_boss_coach_type');
@@ -111,7 +209,7 @@ function hockey_boss_delete_types () {
   }
 }
 
-// ----- II. Relations -----
+// ----- III. Relations -----
 
 /// The Coach/Team relation name.
 define ('hockey_boss_COACH_TEAM_RELATION', 'hockey_boss_coach_team_rel');
@@ -211,7 +309,7 @@ function hockey_boss_delete_relations () {
   }
 }
 
-// ----- III. Create Fields. -----
+// ----- IV. Create Fields. -----
 
 /// Creates the game/team relation fields.
 function hockey_boss_create_game_team_fields () {
@@ -246,6 +344,7 @@ function hockey_boss_create_team_league_fields () {
 function hockey_boss_create_player_profile_fields () {
   $type = hockey_boss_player_profile_type ();
   node_add_body_field ($type, 'Bio');
+  simple_field_create_term_reference ('node', $type->type, $type->type . '_position', t ('Position'), hockey_boss_PLAYER_POSITION_VOCAB);
   simple_field_create_relation_field ('node', $type->type, $type->type . '_user', t ('User Account'), hockey_boss_USER_PLAYER_RELATION . ':reverse', 1);
   simple_field_create_relation_field ('node', $type->type, $type->type . '_team', t ('Team'), hockey_boss_PLAYER_TEAM_RELATION);
 }
@@ -254,6 +353,7 @@ function hockey_boss_create_player_profile_fields () {
 function hockey_boss_create_team_profile_fields () {
   $type = hockey_boss_team_profile_type ();
   node_add_body_field ($type, 'Description');
+  simple_field_create_term_reference ('node', $type->type, $type->type . '_age', t ('Age Group'), hockey_boss_TEAM_AGE_GROUP_VOCAB);
   simple_field_create_relation_field ('node', $type->type, $type->type . '_coach', t ('Coach'), hockey_boss_COACH_TEAM_RELATION . ':reverse', 1);
   simple_field_create_relation_field ('node', $type->type, $type->type . '_league', t ('League'), hockey_boss_TEAM_LEAGUE_RELATION, 1);
   simple_field_create_relation_field ('node', $type->type, $type->type . '_players', t ('Players'), hockey_boss_PLAYER_TEAM_RELATION . ':reverse');
@@ -269,7 +369,7 @@ function hockey_boss_create_fields () {
   hockey_boss_create_team_profile_fields ();
 }
 
-// ----- IV. Node operations -----
+// ----- V. Node operations -----
 
 /**
   @brief Accepts a node type and returns the node
@@ -310,24 +410,62 @@ function hockey_boss_get_game_nodes () {
   @brief Accepts a player node and returns the user id of the user associated with it.
   @return (int) the user id.
 */
-function hockey_boss_get_player_user_uid ($node) {
-  return simple_field_get_relation_source_entity_id ($node, hockey_boss_PLAYER_PROFILE_TYPE . '_user');
+function hockey_boss_get_player_user_uid ($player_node) {
+  return simple_field_get_relation_source_entity_id ($player_node, hockey_boss_PLAYER_PROFILE_TYPE . '_user');
 }
 
 /**
   @brief Accepts a player node and returns its team node id.
   @return (int) the team node id.
 */
-function hockey_boss_get_player_team_nid ($node) {
-  return simple_field_get_relation_target_entity_id ($node, hockey_boss_PLAYER_PROFILE_TYPE . '_team');
+function hockey_boss_get_player_team_nid ($player_node) {
+  return simple_field_get_relation_target_entity_id ($player_node, hockey_boss_PLAYER_PROFILE_TYPE . '_team');
+}
+
+/**
+  @brief Accepts a player node and returns its team node.
+  @return (object) the team node.
+*/
+function hockey_boss_get_player_team_node ($player_node) {
+  $team_nid = simple_field_get_relation_target_entity_id ($player_node, hockey_boss_PLAYER_PROFILE_TYPE . '_team');
+  return is_null ($team_nid) ? null : node_load ($team_nid);
+}
+
+/**
+  @brief Accepts a player profile node and returns its position term id.
+  @param $player_node (node) the player profile node.
+  @return (int) position term id.
+*/
+function hockey_boss_get_player_position_tid ($player_node) {
+  $field = $player_node->{hockey_boss_PLAYER_PROFILE_TYPE . '_position'};
+  return empty ($field) ? null : $field ['und'][0]['tid'];
+}
+
+/**
+  @brief Accepts a player profile node and returns its position term.
+  @param $player_node (node) the player profile node.
+  @return (object) the position term.
+*/
+function hockey_boss_get_player_position_term ($player_node) {
+  $position_tid = hockey_boss_get_player_position_tid ($player_node);
+  return is_null ($position_tid) ? null : taxonomy_term_load ($position_tid);
 }
 
 /**
   @brief Accepts a team node and returns its coach node id.
   @return (int) the coach node id.
 */
-function hockey_boss_get_team_coach_nid ($node) {
-  return simple_field_get_relation_source_entity_id ($node, hockey_boss_TEAM_PROFILE_TYPE . '_coach');
+function hockey_boss_get_team_coach_nid ($team_node) {
+  return simple_field_get_relation_source_entity_id ($team_node, hockey_boss_TEAM_PROFILE_TYPE . '_coach');
+}
+
+/**
+  @brief Accepts a team node and returns its coach node.
+  @return (object) the team node.
+*/
+function hockey_boss_get_team_coach_node ($team_node) {
+  $team_nid = hockey_boss_get_team_coach_nid ($team_node);
+  return is_null ($team_nid) ? null : node_load ($team_nid);
 }
 
 /**
@@ -339,6 +477,42 @@ function hockey_boss_get_team_player_nids ($node) {
 }
 
 /**
+  @brief Accepts a team node id and returns the
+    game/team relations associated with it.
+  @param $team_nid (int) the team node id.
+  @return (array) the relations.
+*/
+function hockey_boss_get_team_game_relations ($team_nid) {
+  $query = relation_query ('node', $team_nid, 1);
+  $query->entityCondition ('bundle', hockey_boss_GAME_TEAM_RELATION);
+  $results = $query->execute ();
+  $relations = array ();
+  foreach ($results as $result) {
+    $relations [] = relation_load ($result->rid);
+  }
+  return $relations;
+}
+
+/**
+  @brief Accepts a team node id and returns an
+    array describing the games that the team
+    participated in.
+  @param $team_nid (int) the team node id.
+  @return (array) the game nodes sorted and keyed by date.
+*/
+function hockey_boss_get_team_games ($team_nid) {
+  $game_nodes = array ();
+  foreach (hockey_boss_get_team_game_relations ($team_nid) as $relation) {
+    $entities = field_get_items ('relation', $relation, 'endpoints');
+    $game_node = node_load ($entities [0]['entity_id']);
+    $game_date = hockey_boss_get_game_date ($game_node);
+    $game_nodes [$game_date] = $game_node;
+  }
+  asort ($game_nodes);
+  return $game_nodes;
+}
+
+/**
   @brief Accepts a coach node and returns its user id.
   @return (int) the coach user id.
 */
@@ -347,11 +521,12 @@ function hockey_boss_get_coach_user_uid ($node) {
 }
 
 /**
-  @brief Accepts a game node and returns its date.
-  @return (string) the date.
+  @brief Accepts a game node and returns the game date.
+  @param $game_node (object) the game node.
+  @return (string) the game date.
 */
-function hockey_boss_get_game_date ($node) {
-  return $node ? $node->{hockey_boss_GAME_TYPE . '_date'}['und'][0]['value'] : null;
+function hockey_boss_get_game_date ($game_node) {
+  return $game_node ? $game_node->{hockey_boss_GAME_TYPE . '_date'}['und'][0]['value'] : null;
 }
 
 /**
@@ -363,20 +538,33 @@ function hockey_boss_get_game_team_nids ($node) {
 }
 
 /**
-  @brief Accepts a game node and returns the relations 
+  @brief Accepts a game node and returns the relations.
+  @param $game_nid (int) the game node id.
+  @return (object) the game team relations.
 */
-function hockey_boss_get_game_team_scores ($node) {
-  $field_value = simple_field_get_field_values ($node, hockey_boss_GAME_TYPE . '_teams');
-  watchdog (
-    'hockey_boss',
-    '[hockey_boss_get_game_team_scores] field value: <pre>@field_value</pre>',
-    array (
-      '@field_value' => print_r ($field_value, true)
-  ));
-  return $field_value;
+function hockey_boss_get_game_team_relations ($game_nid) {
+  $query = relation_query ('node', $game_nid, 0);
+  $query->entityCondition ('bundle', hockey_boss_GAME_TEAM_RELATION);
+  $results = $query->execute ();
+  $relations = array ();
+  foreach ($results as $result) {
+    $relations [] = relation_load ($result->rid);
+  }
+  return $relations;
 }
 
-// ----- V. User Roles -----
+/**
+  @brief Accepts a game node and returns the game date year.
+  @param $game_node (object) the game node.
+  @return (string) the game date year.
+*/
+function hockey_boss_get_game_year ($game_node) {
+  $date_string = hockey_boss_get_game_date ($game_node);
+  $date = date_create ($date_string);
+  return date_format ($date, 'Y');
+}
+
+// ----- VI. User Roles -----
 
 /// The Coach role name. 
 define ('hockey_boss_COACH_ROLE', 'hockey_boss_coach_role');

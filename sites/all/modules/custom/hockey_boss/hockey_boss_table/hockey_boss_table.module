@@ -14,11 +14,17 @@ function hockey_boss_table_block_info () {
     'hockey_boss_table_pps' => array (
       'info' => t ('Displays the current player\'s performance stats.')
     ),
+    'hockey_boss_table_pfs' => array (
+      'info' => t ('Displays the current player\'s fitness stats.')
+    ),
     'hockey_boss_table_pgs' => array (
       'info' => t ('Displays the current player\'s game stats.')
     ),
     'hockey_boss_table_tr' => array (
-      'info' => t ('Displays the team roster.')
+      'info' => t ('Displays the current team\'s roster.')
+    ),
+    'hockey_boss_table_tgs' => array (
+      'info' => t ('Displays the current team\'s game stats.'),
     ),
     'hockey_boss_table_lt' => array (
       'info' => t ('Displays the current league\'s teams.')
@@ -43,7 +49,16 @@ function hockey_boss_table_block_view ($delta = '') {
       if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
         return array (
           'subject' => '',
-          'content' => drupal_get_form ('simple_table_get_form', new PPSTable ($player->nid))
+          'content' => drupal_get_form ('simple_table_get_form', new PPSTable ($player->nid, date ('Y')))
+        );
+      }
+      break;
+    case 'hockey_boss_table_pfs':
+      $player = node_load (arg (1));
+      if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+        return array (
+          'subject' => '',
+          'content' => drupal_get_form ('simple_table_get_form', new PFSTable ($player))
         );
       }
       break;
@@ -52,7 +67,7 @@ function hockey_boss_table_block_view ($delta = '') {
       if ($player && $player->type == hockey_boss_PLAYER_PROFILE_TYPE) {
         return array (
           'subject' => '',
-          'content' => drupal_get_form ('simple_table_get_form', new PGSTable ($player))
+          'content' => drupal_get_form ('simple_table_get_form', new PGSTable ($player, date ('Y')))
         );
       }
       break;
@@ -61,7 +76,16 @@ function hockey_boss_table_block_view ($delta = '') {
       if ($team && $team->type == hockey_boss_TEAM_PROFILE_TYPE) {
         return array (
           'subject' => '',
-          'content' => drupal_get_form ('simple_table_get_form', new TRTable ($team))
+          'content' => drupal_get_form ('simple_table_get_form', new TRTable ($team, date ('Y')))
+        );
+      }
+      break;
+    case 'hockey_boss_table_tgs':
+      $team = node_load (arg (1));
+      if ($team && $team->type == hockey_boss_TEAM_PROFILE_TYPE) {
+        return array (
+          'subject' => '',
+          'content' => drupal_get_form ('simple_table_get_form', new TGSTable ($team, date ('Y')))
         );
       }
       break;

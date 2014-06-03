@@ -8,19 +8,38 @@
 
 // ----- I. Content Types -----
 
+/// The Player Performance stat type name.
 define ('hockey_boss_stat_PPS_TYPE', 'hockey_boss_stat_pps');
+
+/// The Player Fitness stat type name.
+define ('hockey_boss_stat_PFS_TYPE', 'hockey_boss_stat_pfs');
+
+/// The Player Game stat type name.
 define ('hockey_boss_stat_PGS_TYPE', 'hockey_boss_stat_pgs');
 
+/// Returns the Player Game Stat type.
 function hockey_boss_stat_pgs_type () {
   module_load_include ('inc', 'hockey_boss');
   return array (
     'name'              => 'Player Game Stat',
     'description'       => 'Represents player game statistics.',
     'node_type'         => hockey_boss_stat_PGS_TYPE,
-    'subject_node_type' => hockey_boss_PLAYER_PROFILE_TYPE,
+    'subject_node_type' => hockey_boss_PLAYER_PROFILE_TYPE
   );
 }
 
+/// Returns the Player Fitness Stat type. 
+function hockey_boss_stat_pfs_type () {
+  module_load_include ('inc', 'hockey_boss');
+  return array (
+    'name'              => 'Player Fitness Stat',
+    'description'       => 'Represents player fitness statistics.',
+    'node_type'         => hockey_boss_stat_PFS_TYPE,
+    'subject_node_type' => hockey_boss_PLAYER_PROFILE_TYPE
+  );
+}
+
+/// Returns the Player Performance Stat type.
 function hockey_boss_stat_pps_type () {
   module_load_include ('inc', 'hockey_boss');
   return array (
@@ -41,6 +60,7 @@ function hockey_boss_stat_get_stat_types () {
 
   return array (
     hockey_boss_stat_pgs_type (),
+    hockey_boss_stat_pfs_type (),
     hockey_boss_stat_pps_type ()
   );
 }

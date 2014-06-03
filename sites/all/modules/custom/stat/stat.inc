@@ -20,7 +20,7 @@
 */
 function stat_type_create ($stat_type) {
   drupal_write_record ('stat_stat_type', $stat_type);
-  stat_node_type_create ($stat_type);
+  stat_type_create_node_type ($stat_type);
 };
 
 /**
@@ -136,7 +136,7 @@ function stat_type_get_by_subject_node_type ($subject_node_type) {
 */
 function stat_type_delete ($stat_type) {
   // I. Delete the stat type's node type and stat nodes.
-  stat_delete_stat_type_node_type ($stat_type);
+  stat_type_delete_node_type ($stat_type);
 
   // II. Delete the stat type's database record.
   db_delete ('{stat_stat_type}')
@@ -189,7 +189,7 @@ function stat_type_get_node_type ($stat_type) {
   @param $stat_type (array) the stat type.
 */
 function stat_type_delete_node_type ($stat_type) {
-  stat_node_type_delete ($stat_type ['node_type']);
+  stat_delete_node_type ($stat_type ['node_type']);
 }
 
 /**
@@ -475,7 +475,7 @@ function stat_node_set_date ($stat_node, $date) {
   @return (int) the year.
 */
 function stat_node_get_year ($stat_node) {
-  $date = stat_get_date ($stat_node);
+  $date = stat_node_get_date ($stat_node);
   $year = date ('Y', strtotime ($date));
   return $year + 1;
 }

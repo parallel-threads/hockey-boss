@@ -19,19 +19,23 @@ function hockey_boss_install () {
   );
   module_load_include ('inc', 'hockey_boss');
 
-  // I. Create the core content types.
+  // I. Create the core vocabularies.
+  hockey_boss_create_vocabularies ();
+  drupal_set_message ('Created the core Hockey Boss vocabularies.');
+
+  // II. Create the core content types.
   hockey_boss_create_types ();
   drupal_set_message ('Created the core Hockey Boss types.');
 
-  // II. Create the core user roles.
+  // III. Create the core user roles.
   hockey_boss_create_roles ();
   drupal_set_message ('Created the core Hockey Boss user roles.');
 
-  // III. Create the core relations.
+  // IV. Create the core relations.
   hockey_boss_create_relations ();
   drupal_set_message ('Created the core Hockey Boss relations.');
 
-  // IV. Create the core fields.
+  // V. Create the core fields.
   hockey_boss_create_fields ();
 }
 
@@ -64,4 +68,8 @@ function hockey_boss_uninstall () {
   // IV. Delete the core content tpes.
   hockey_boss_delete_types ();
   drupal_set_message ('Deleted the core Hockey Boss types.');
+
+  // V. Delete the core vocabularies.
+  hockey_boss_delete_vocabularies ();
+  drupal_set_message ('Deleted the core Hockey Boss vocabularies.');
 }

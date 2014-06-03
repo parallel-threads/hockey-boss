@@ -21,5 +21,16 @@ function hockey_boss_stat_permission () {
       'title'       => t ('Edit Team Player Performance Stats'),
       'description' => t ('Enables a user to edit the player performance stats of team members.')
     ),
-  );
+    'hockey_boss_stat_edit_all_pfs' => array (
+      'title'       => t ('Edit All Player Fitness Stats'),
+      'description' => t ('Enables users to edit all player fitness stats.')
+    ),
+    'hockey_boss_stat_edit_own_pfs' => array (
+      'title'       => t ('Edit Own Player Fitness Stats'),
+      'description' => t ('Enables a user to edit their own player fitness stats.')
+    ),
+    'hockey_boss_stat_edit_team_pfs' => array (
+      'title'       => t ('Edit Team Player Fitness Stats'),
+      'description' => t ('Enables a user to edit the player fitness stats of team members.')
+  ));
 }

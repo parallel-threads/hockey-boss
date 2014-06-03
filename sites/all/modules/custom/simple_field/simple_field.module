@@ -432,7 +432,7 @@ function simple_field_get_relation_target_entity_ids ($node, $field_name) {
 */
 function simple_field_get_relation_source_entity_id ($node, $field_name) {
   $endpoints = simple_field_get_relation_entity_ids ($node, $field_name);
-  return empty ($entity_ids) ? null : $endpoints [0][0];
+  return empty ($endpoints) ? null : $endpoints [0][0];
 }
 
 /**
@@ -443,5 +443,5 @@ function simple_field_get_relation_source_entity_id ($node, $field_name) {
 */
 function simple_field_get_relation_target_entity_id ($node, $field_name) {
   $endpoints = simple_field_get_relation_entity_ids ($node, $field_name);
-  return empty ($entity_ids) ? null : $endpoints [0][1];
+  return empty ($endpoints) ? null : $endpoints [0][1];
 }
