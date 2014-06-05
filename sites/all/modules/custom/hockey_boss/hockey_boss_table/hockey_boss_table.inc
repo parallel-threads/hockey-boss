@@ -185,24 +185,9 @@ class PFSTable extends SimpleTable {
     module_load_include ('inc', 'stat');
 
     $field_width = 3;
-
     $stat_name = $column_name;
     $year = $row_name;
-
-    $query = stat_node_query_create (hockey_boss_stat_PFS_TYPE);
-    $query = stat_node_query_add_year_filter ($query, $year);
-    $query = stat_node_query_add_title_filter ($query, $stat_name);
-    $query = stat_node_query_add_subject_filter ($query, $this->player_node->nid);
-    $stat_nodes = stat_node_query_execute ($query);
-    $stat_node = empty ($stat_nodes) ? null : $stat_nodes [0];
-
-    if (is_null ($stat_node)) {
-      $stat_date = "$year-01-01 12:00:00";
-      $stat_type = hockey_boss_stat_pfs_type ();
-      $stat_node = stat_node_create ($stat_type, $stat_name, '0', '0', $stat_date, $this->player_node->nid);
-      node_save ($stat_node);
-    }
-
+    $stat_node = hockey_boss_stat_get_pfs_node ($this->player_node->nid, $stat_name, $year);
     $stat_value = stat_node_get_value ($stat_node);
     if ($this->editable ()) {
       return array (
@@ -418,7 +403,6 @@ class TRTable extends SimpleTable {
         'display_value' => ''
       );
     }
-
     if ($column_name === 'Name') {
       $player_node_uri = node_uri ($player_node);
       return array (
@@ -436,28 +420,8 @@ class TRTable extends SimpleTable {
         'display_value' => $position_name
       );
     }
-
     $stat_name = $column_name;
-    $pps_query = stat_node_query_create (hockey_boss_stat_PPS_TYPE);
-    $pps_query = stat_node_query_add_year_filter ($pps_query, $this->year);
-    $pps_query = stat_node_query_add_subject_filter ($pps_query, $player_node->nid);
-    $pps_query = stat_node_query_add_title_filter ($pps_query, $stat_name);
-    $stat_nodes = stat_node_query_execute ($pps_query);
-    $stat = empty ($stat_nodes) ? null : stat_from_stat_node ($stat_nodes [0]);
-
-    if (is_null ($stat)) {
-      $stat = stat_create ($stat_name, hockey_boss_stat_PPS_TYPE, 0, '', "$this->year-01-01 00:00:00", $player_nid);
-      $pgs_query = stat_node_query_create (hockey_boss_stat_PGS_TYPE);
-      $pgs_query = stat_node_query_add_year_filter ($pgs_query, $this->year);
-      $pgs_query = stat_node_query_add_title_filter ($pgs_query, $stat_name);
-      $pgs_query = stat_node_query_add_subject_filter ($pgs_query, $player_nid);
-      $pgs_nodes = stat_node_query_execute ($pgs_query);
-
-      foreach ($pgs_nodes as $pgs_node) {
-        $stat ['value'] += stat_node_get_value ($pgs_node);
-      }
-    }
-
+    $stat = hockey_boss_stat_get_pps ($player_node->nid, $stat_name, $this->year);
     return array (
       'id'            => null,
       'value'         => $stat ['value'],
@@ -472,11 +436,11 @@ class TGSTable extends SimpleTable {
   public $team_nid = null;
 
   /// Returns a team game stat table.
-  public function __construct ($team_node, $year) {
-    $this->team_nid = $team_node->nid;
+  public function __construct ($team_nid, $year) {
+    $this->team_nid = $team_nid;
 
     // I. set the row names.
-    $game_nodes = hockey_boss_get_team_games ($team_node->nid);
+    $game_nodes = hockey_boss_get_team_games ($team_nid);
     foreach ($game_nodes as $game_node) {
       $game_year = hockey_boss_get_game_year ($game_node);
       if ($game_year == $year) {
@@ -611,28 +575,13 @@ class LTTable extends SimpleTable {
         'display_value' => l ($team_node->title, $team_node_uri ['path'])
       );
     }
-
     $stat_name = $column_name;
-    $stat_value = 0;
     $current_year = date ('Y');
-    $team_player_nids = simple_field_get_relation_source_entity_ids ($team_node, hockey_boss_TEAM_PROFILE_TYPE . '_players');
-    foreach ($team_player_nids as $team_player_nid) {
-      $query = stat_node_query_create (hockey_boss_stat_PPS_TYPE);
-      $query = stat_node_query_add_year_filter ($query, $current_year);
-      $query = stat_node_query_add_title_filter ($query, $stat_name);
-      $query = stat_node_query_add_subject_filter ($query, $team_player_nid);
-      $player_stat_nodes = stat_node_query_execute ($query);
-
-      if (!empty ($player_stat_nodes)) {
-        $player_stat_node = $player_stat_nodes [0];
-        $stat_value += stat_node_get_value ($player_stat_node);
-      }
-    }
-
+    $stat = hockey_boss_stat_get_tps ($team_node, $stat_name, $current_year);
     return array (
       'id'            => null,
-      'value'         => $stat_value,
-      'display_value' => $stat_value
+      'value'         => $stat ['value'],
+      'display_value' => $stat ['value']
     );
   }
 }
@@ -675,7 +624,6 @@ class PCTable extends SimpleTable {
         'display_value' => ''
       );
     }
-
     if ($column_name === 'Name') {
       $player_node_uri = node_uri ($player);
       return array (
@@ -692,30 +640,13 @@ class PCTable extends SimpleTable {
         'display_value' => $position_term->name
       );
     }
-
     $stat_name = $column_name;
     $current_year = date ('Y');
-
-    $query = stat_node_query_create (hockey_boss_stat_PPS_TYPE);
-    $query = stat_node_query_add_year_filter ($query, $current_year);
-    $query = stat_node_query_add_title_filter ($query, $stat_name);
-    $query = stat_node_query_add_subject_filter ($query, $player->nid);
-    $stat_nodes = stat_node_query_execute ($query);
-    $stat_node = empty ($stat_nodes) ? null : $stat_nodes [0];
-
-    if (is_null ($stat_node)) {
-      $stat_date  = simple_field_create_date_field_value ($current_year, 0, 0);
-      $stat_date  = $stat_date ['value'];
-      $stat_type  = hockey_boss_stat_pps_type ();
-      $stat_node = stat_node_create ($stat_type, $stat_name, '', '', $stat_date, $player->nid);
-    }
-
-    $stat_value = stat_node_get_value ($stat);
-    $field_width = 3;
+    $stat = hockey_boss_stat_get_pps ($player->nid, $stat_name, $current_year);
     return array (
       'id'            => null,
-      'value'         => $stat_value,
-      'display_value' => $stat_value
+      'value'         => $stat ['value'],
+      'display_value' => $stat ['value']
     );
   }
 }

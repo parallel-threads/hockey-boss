@@ -106,3 +106,78 @@ function hockey_boss_stat_delete_stat_types () {
   module_load_include ('inc', 'stat');
   stat_type_delete_multiple (hockey_boss_stat_get_stat_types ());
 }
+
+/**
+  @brief Returns the player performance stat.
+  @param $player_nid (int) the player node id.
+  @param $stat_name (string) the stat name.
+  @param $year (int) the year.
+  @return (array) the stat.
+*/
+function hockey_boss_stat_get_pps ($player_nid, $stat_name, $year) {
+  module_load_include ('inc', 'stat');
+  $pps_query = stat_node_query_create (hockey_boss_stat_PPS_TYPE);
+  $pps_query = stat_node_query_add_year_filter ($pps_query, $year);
+  $pps_query = stat_node_query_add_title_filter ($pps_query, $stat_name);
+  $pps_query = stat_node_query_add_subject_filter ($pps_query, $player_nid);
+  $pps_stat_nodes = stat_node_query_execute ($pps_query);
+  $stat = empty ($pps_stat_nodes) ? null : stat_from_stat_node ($pps_stat_nodes [0]);
+
+  if (is_null ($stat)) {
+    $stat = stat_create ($stat_name, null, 0, 0, "$year-01-01 12:00:00", $player_nid);
+    $pgs_query = stat_node_query_create (hockey_boss_stat_PGS_TYPE);
+    $pgs_query = stat_node_query_add_year_filter ($pgs_query, $year);
+    $pgs_query = stat_node_query_add_title_filter ($pgs_query, $stat_name);
+    $pgs_query = stat_node_query_add_subject_filter ($pgs_query, $player_nid);
+    $pgs_stat_nodes = stat_node_query_execute ($pgs_query);
+    foreach ($pgs_stat_nodes as $pgs_stat_node) {
+      $stat ['value'] += stat_node_get_value ($pgs_stat_node);
+      $stat ['unit'] = stat_node_get_unit ($pgs_stat_node);
+    }
+  }
+  return $stat;
+}
+
+/**
+  @brief Returns the player fitess stat node.
+  @param $player_nid (int) the player node id.
+  @param $stat_name (string) the stat name.
+  @param $year (int) the year.
+  @return (object) the node.
+*/
+function hockey_boss_stat_get_pfs_node ($player_nid, $stat_name, $year) {
+  module_load_include ('inc', 'stat');
+  $query = stat_node_query_create (hockey_boss_stat_PFS_TYPE);
+  $query = stat_node_query_add_year_filter ($query, $year);
+  $query = stat_node_query_add_title_filter ($query, $stat_name);
+  $query = stat_node_query_add_subject_filter ($query, $player_nid);
+  $stat_nodes = stat_node_query_execute ($query);
+  $stat_node = empty ($stat_nodes) ? null : $stat_nodes [0];
+
+  if (is_null ($stat_node)) {
+    $stat_date = "$year-01-01 12:00:00";
+    $stat_type = hockey_boss_stat_pfs_type ();
+    $stat_node = stat_node_create ($stat_type, $stat_name, '0', '0', $stat_date, $player_nid);
+    node_save ($stat_node);
+  }
+  return $stat_node;
+}
+
+/**
+  @brief Returns the team performance stat.
+  @param $team_node (object) the team node.
+  @param $stat_name (string) the stat name.
+  @param $year (int) the year.
+  @return (array) the stat.
+*/
+function hockey_boss_stat_get_tps ($team_node, $stat_name, $year) {
+  module_load_include ('inc', 'hockey_boss');
+  $stat = stat_create ($stat_name, null, 0, 0, "$year-01-01 12:00:0", $team_node->nid);
+  $player_nids = hockey_boss_get_team_player_nids ($team_node);
+  foreach ($player_nids as $player_nid) {
+    $pps = hockey_boss_stat_get_pps ($player_nid, $stat_name, $year);
+    $stat ['value'] += $pps ['value'];
+    $stat ['unit']   = $pps ['unit'];
+  } 
+  return $stat;
+}
