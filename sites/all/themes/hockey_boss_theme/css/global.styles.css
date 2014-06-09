@@ -1149,6 +1149,7 @@ ul.action-links li {}
 
 #content .block {
   background-color: white;
+  overflow-x: auto;
 }
 
 .sidebar .block {

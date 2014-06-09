@@ -25,6 +25,31 @@ function hockey_boss_permission () {
   );
 }
 
+/**
+  @brief Returns true iff the given user can view the player profile node.
+  @param $player_node (object) the player profile node.
+  @param $account (object) the user.
+  @return (boolean).
+*/
+function hockey_boss_user_can_view_player_profile ($player_node, $account) {
+  return user_access ('hockey_boss_view_all_player_profiles', $account) ||
+           ($account->uid == hockey_boss_get_player_user_uid ($node) &&
+             user_access ('hockey_boss_view_own_player_profile', $account));
+}
+
+/// Implements hook_node_access ().
+function hockey_boss_node_access ($node, $op, $account) {
+  module_load_include ('inc', 'hockey_boss');
+  switch ($op) {
+    case 'view':
+      if ($node->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+        return hockey_boss_user_can_view_player_profile ($node, $account) ? NODE_ACCESS_ALLOW : NODE_ACCESS_DENY;
+      }
+      break;
+  }
+  return NODE_ACCESS_IGNORE;
+}
+
 /// Implements hook_menu ().
 function hockey_boss_menu () {
   return array (
