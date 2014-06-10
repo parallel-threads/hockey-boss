@@ -10,7 +10,7 @@ class SimpleTable {
   public $pager_index = 0;
 
   /// the number of items to display per page.
-  public $pager_num = 1;
+  public $pager_num = 10;
 
   /// the table caption.
   public $caption = '';
@@ -334,7 +334,7 @@ class SimpleTable {
     $num_body_rows = count ($body_rows);
     $pager_max_index = floor ($num_body_rows / $table->pager_num);
     if ($num_body_rows > $table->pager_num) {
-      $form ['table']['header']['pager']['pager_curr']['#markup'] = '<li class="pager-current">' . ($table->pager_index + 1) . ' of ' . $pager_max_index . '</li>';
+      $form ['table']['header']['pager']['pager_curr']['#markup'] = '<li class="pager-current">' . ($table->pager_index + 1) . ' of ' . ($pager_max_index + 1) . '</li>';
       if ($table->pager_index > 0) {
         $form ['table']['header']['pager']['pager_prev_link'] = array (
           '#type'  => 'button',
@@ -344,7 +344,7 @@ class SimpleTable {
             'wrapper'  => $unique_form_id
         ));
       }
-      if ($table->pager_index < $pager_max_index - 1) {
+      if ($table->pager_index < $pager_max_index) {
         $form ['table']['header']['pager']['pager_next_link'] = array (
           '#type'  => 'button',
           '#value' => 'next',
@@ -438,14 +438,6 @@ class SimpleTable {
         '#submit'              => array ('simple_table_form_submit')
       );
     }
-
-    watchdog (
-      'simple_table',
-      '[SimpleTable::get_form] form id: @form_id form: <pre>@form</pre>',
-      array (
-        '@form_id' => $unique_form_id,
-        '@form'    => print_r ($form, true)
-    ));
 
     return $form;
   }
