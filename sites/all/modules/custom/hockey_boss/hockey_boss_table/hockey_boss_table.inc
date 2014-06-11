@@ -378,7 +378,13 @@ class TRTable extends SimpleTable {
     $this->year = $year;
 
     // set row names.
-    $this->row_names = hockey_boss_get_team_player_nids ($team_node);
+    global $user;
+    foreach (hockey_boss_get_team_player_nids ($team_node) as $player_nid) {
+      $player_node = node_load ($player_nid);
+      if (hockey_boss_user_can_view_player_profile ($player_node, $user)) {
+        $this->row_names [] = $player_nid;
+      }
+    }
 
     // set columns.
     $this->columns = $this->create_columns (array ('+/-', 'Face-Offs', 'Penalties', 'SAOG', 'Shots Against', 'SOG', 'Shots', 'Assists', 'Goals', 'Position', 'Name'));
@@ -648,5 +654,79 @@ class PCTable extends SimpleTable {
       'value'         => $stat ['value'],
       'display_value' => $stat ['value']
     );
+  }
+}
+
+/// Represents the vital team stat tables.
+class VTSTable extends SimpleTable {
+  /// Returns a vital team stat table.
+  public function __construct ($team_node) {
+    parent::__construct ();
+
+    $age_term = hockey_boss_get_team_age_term ($team_node);
+    if ($age_term) {
+      $this->fields [] = array (
+        'id'            => null,
+        'column_name'   => 'Age Group',
+        'row_name'      => $team_node->nid,
+        'value'         => $age_term->name,
+        'display_value' => $age_term->name
+      );
+    }
+
+    $league_node = hockey_boss_get_team_league_node ($team_node);
+    if ($league_node) {
+      $league_node_uri = node_uri ($league_node);
+      $this->fields [] = array (
+        'id'            => null,
+        'column_name'   => 'League',
+        'row_name'      => $team_node->nid,
+        'value'         => $league_node->title,
+        'display_value' => l ($league_node->title, $league_node_uri ['path'])
+      );
+    }
+
+    $coach_node = hockey_boss_get_team_coach_node ($team_node);
+    if ($coach_node) {
+      $coach_node_uri = node_uri ($coach_node);
+      $this->fields [] = array (
+        'id'            => null,
+        'column_name'   => 'Coach',
+        'row_name'      => $team_node->nid,
+        'value'         => $coach_node->title,
+        'display_value' => l ($coach_node->title, $coach_node_uri ['path'])
+      );
+    }
+  }
+}
+
+/// Represents the vital player stat tables.
+class VPSTable extends SimpleTable {
+  /// Returns a vital player stat table.
+  public function __construct ($player_node) {
+    parent::__construct ();
+
+    $position_term = hockey_boss_get_player_position_term ($player_node);
+    if ($position_term) {
+      $this->fields [] = array (
+        'id'            => null,
+        'column_name'   => 'Position',
+        'row_name'      => $player_node->nid,
+        'value'         => $position_term->name,
+        'display_value' => $position_term->name
+      );
+    }
+
+    $team_node = hockey_boss_get_player_team_node ($player_node);
+    if ($team_node) {
+      $team_node_uri = node_uri ($team_node);
+      $this->fields [] = array (
+        'id'            => null,
+        'column_name'   => 'Team',
+        'row_name'      => $player_node->nid,
+        'value'         => $team_node->title,
+        'display_value' => l ($team_node->title, $team_node_uri ['path'])
+      );
+    }
   }
 }

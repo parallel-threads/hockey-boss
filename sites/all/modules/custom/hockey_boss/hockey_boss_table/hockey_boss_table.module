@@ -24,13 +24,19 @@ function hockey_boss_table_block_info () {
       'info' => t ('Displays the current team\'s roster.')
     ),
     'hockey_boss_table_tgs' => array (
-      'info' => t ('Displays the current team\'s game stats.'),
+      'info' => t ('Displays the current team\'s game stats.')
     ),
     'hockey_boss_table_lt' => array (
       'info' => t ('Displays the current league\'s teams.')
     ),
     'hockey_boss_table_pc' => array (
       'info' => t ('Displays the player comparison table.')
+    ),
+    'hockey_boss_table_vts' => array (
+      'info' => t ('Displays the current team\'s vital stats.')
+    ),
+    'hockey_boss_table_vps' => array (
+      'info' => t ('Displays the current player\'s vital stats.')
   ));
 }
 
@@ -43,10 +49,19 @@ function hockey_boss_table_block_view ($delta = '') {
   module_load_include ('inc', 'hockey_boss');
   module_load_include ('inc', 'hockey_boss_table');
 
+  global $user;
+  $user_can_view_any_player_profiles = 
+    user_access ('hockey_boss_view_own_player_profile', $user) ||
+    user_access ('hockey_boss_view_all_player_profiles', $user);
+
   switch ($delta) {
     case 'hockey_boss_table_pps':
       $player_node = node_load (arg (1));
-      if ($player_node && $player_node->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+      if ($player_node &&
+          $player_node->type == hockey_boss_PLAYER_PROFILE_TYPE &&
+          $user_can_view_any_player_profiles &&
+          hockey_boss_user_can_view_player_profile ($player_node, $user)
+      ) {
         return array (
           'subject' => 'Performance Stats',
           'content' => drupal_get_form ('simple_table_get_form', new PPSTable ($player_node->nid, date ('Y')))
@@ -55,7 +70,11 @@ function hockey_boss_table_block_view ($delta = '') {
       break;
     case 'hockey_boss_table_pfs':
       $player_node = node_load (arg (1));
-      if ($player_node && $player_node->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+      if ($player_node &&
+          $player_node->type == hockey_boss_PLAYER_PROFILE_TYPE &&
+          $user_can_view_any_player_profiles &&
+          hockey_boss_user_can_view_player_profile ($player_node, $user)
+      ) {
         return array (
           'subject' => 'Fitness Stats',
           'content' => drupal_get_form ('simple_table_get_form', new PFSTable ($player_node))
@@ -64,7 +83,11 @@ function hockey_boss_table_block_view ($delta = '') {
       break;
     case 'hockey_boss_table_pgs':
       $player_node = node_load (arg (1));
-      if ($player_node && $player_node->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+      if ($player_node &&
+          $player_node->type == hockey_boss_PLAYER_PROFILE_TYPE &&
+          $user_can_view_any_player_profiles &&
+          hockey_boss_user_can_view_player_profile ($player_node, $user)
+      ) {
         return array (
           'subject' => 'Game Stats',
           'content' => drupal_get_form ('simple_table_get_form', new PGSTable ($player_node, date ('Y')))
@@ -73,7 +96,10 @@ function hockey_boss_table_block_view ($delta = '') {
       break;
     case 'hockey_boss_table_tr':
       $team_node = node_load (arg (1));
-      if ($team_node && $team_node->type == hockey_boss_TEAM_PROFILE_TYPE) {
+      if ($team_node &&
+          $user_can_view_any_player_profiles &&
+          $team_node->type == hockey_boss_TEAM_PROFILE_TYPE
+      ) {
         return array (
           'subject' => 'Roster',
           'content' => drupal_get_form ('simple_table_get_form', new TRTable ($team_node, date ('Y')))
@@ -82,7 +108,9 @@ function hockey_boss_table_block_view ($delta = '') {
       break;
     case 'hockey_boss_table_tgs':
       $team_node = node_load (arg (1));
-      if ($team_node && $team_node->type == hockey_boss_TEAM_PROFILE_TYPE) {
+      if ($team_node &&
+          $team_node->type == hockey_boss_TEAM_PROFILE_TYPE
+      ) {
         return array (
           'subject' => 'Game Stats',
           'content' => drupal_get_form ('simple_table_get_form', new TGSTable ($team_node->nid, date ('Y')))
@@ -91,7 +119,9 @@ function hockey_boss_table_block_view ($delta = '') {
       break;
     case 'hockey_boss_table_lt':
       $league_node = node_load (arg (1));
-      if ($league_node && $league_node->type == hockey_boss_LEAGUE_PROFILE_TYPE) {
+      if ($league_node &&
+          $league_node->type == hockey_boss_LEAGUE_PROFILE_TYPE
+      ) {
         return array (
           'subject' => 'Teams',
           'content' => drupal_get_form ('simple_table_get_form', new LTTable ($league_node))
@@ -101,11 +131,37 @@ function hockey_boss_table_block_view ($delta = '') {
     case 'hockey_boss_table_pc':
       $player_x = node_load (arg (1));
       $player_y = node_load (arg (2));
-      if ($player_x && $player_y && $player_x->type == hockey_boss_PLAYER_PROFILE_TYPE && $player_y->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+      if ($player_x &&
+          $player_y &&
+          $player_x->type == hockey_boss_PLAYER_PROFILE_TYPE &&
+          $player_y->type == hockey_boss_PLAYER_PROFILE_TYPE &&
+          $user_can_view_any_player_profiles &&
+          hockey_boss_user_can_view_player_profile ($player_x, $user) &&
+          hockey_boss_user_can_view_player_profile ($player_y, $user)
+      ) {
         return array (
           'subject' => '',
           'content' => drupal_get_form ('simple_table_get_form', new PCTable (array ($player_x->nid, $player_y->nid)))
         );
       }
+      break;
+    case 'hockey_boss_table_vts':
+      $team_node = node_load (arg (1));
+      if ($team_node && $team_node->type == hockey_boss_TEAM_PROFILE_TYPE) {
+        return array (
+          'subject' => '',
+          'content' => drupal_get_form ('simple_table_get_form', new VTSTable ($team_node))
+        );
+      }
+      break;
+    case 'hockey_boss_table_vps':
+      $player_node = node_load (arg (1));
+      if ($player_node && $player_node->type == hockey_boss_PLAYER_PROFILE_TYPE) {
+        return array (
+          'subject' => '',
+          'content' => drupal_get_form ('simple_table_get_form', new VPSTable ($player_node))
+        );
+      }
+      break;
   }
 }

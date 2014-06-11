@@ -82,7 +82,7 @@ function hockey_boss_create_vocabulary ($vocab_array) {
     taxonomy_vocabulary_save ((object) $vocab_array);
     
     // II. import the terms if given.
-    if ($vocab_array ['url']) {
+    if (isset ($vocab_array ['url'])) {
       $vocab = taxonomy_vocabulary_machine_name_load ($vocab_array ['machine_name']);
       hockey_boss_import_terms ($vocab->vid, $vocab_array ['url']);
     }
@@ -464,8 +464,8 @@ function hockey_boss_get_team_coach_nid ($team_node) {
   @return (object) the team node.
 */
 function hockey_boss_get_team_coach_node ($team_node) {
-  $team_nid = hockey_boss_get_team_coach_nid ($team_node);
-  return is_null ($team_nid) ? null : node_load ($team_nid);
+  $coach_nid = hockey_boss_get_team_coach_nid ($team_node);
+  return is_null ($coach_nid) ? null : node_load ($coach_nid);
 }
 
 /**
@@ -510,6 +510,45 @@ function hockey_boss_get_team_games ($team_nid) {
   }
   asort ($game_nodes);
   return $game_nodes;
+}
+
+/**
+  @brief Accepts a team node and returns its age term.
+  @param $team_node (object) the team node.
+  @return (int) the age term id.
+*/
+function hockey_boss_get_team_age_tid ($team_node) {
+  $age_field_items = field_get_items ('node', $team_node, hockey_boss_TEAM_PROFILE_TYPE . '_age');
+  return empty ($age_field_items) ? null : $age_field_items [0]['tid'];
+}
+
+/**
+  @brief Accepts a team node and returns its age term.
+  @param $team_node (object) the team node.
+  @return (object) the age term.
+*/
+function hockey_boss_get_team_age_term ($team_node) {
+  $age_tid  = hockey_boss_get_team_age_tid ($team_node);
+  return is_null ($age_tid) ? null : taxonomy_term_load ($age_tid);
+}
+
+/**
+  @brief Accepts a team node and returns its league node id.
+  @param $team_node (object) the team node.
+  @return (int) the league node id.
+*/
+function hockey_boss_get_team_league_nid ($team_node) {
+  return simple_field_get_relation_target_entity_id ($team_node, hockey_boss_TEAM_PROFILE_TYPE . '_league');
+}
+
+/**
+  @brief Accepts a team node and returns its league node id.
+  @param $team_node (object) the team node.
+  @return (int) the league node id.
+*/
+function hockey_boss_get_team_league_node ($team_node) {
+  $league_nid = hockey_boss_get_team_league_nid ($team_node);
+  return is_null ($league_nid) ? null : node_load ($league_nid);
 }
 
 /**
