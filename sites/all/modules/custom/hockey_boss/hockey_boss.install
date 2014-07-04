@@ -37,6 +37,11 @@ function hockey_boss_install () {
 
   // V. Create the core fields.
   hockey_boss_create_fields ();
+
+  // VI. Create the core permissions.
+  hockey_boss_grant_permissions ();
+  drupal_set_message ('Set the core Hockey Boss user permissions.');
+  
 }
 
 /**

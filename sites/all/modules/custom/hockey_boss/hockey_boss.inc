@@ -619,16 +619,16 @@ define ('hockey_boss_PLAYER_ROLE', 'hockey_boss_player_role');
 
 /**
   @brief Creates the given user role.
-  @param $name (string) the role name.
+  @param $role_name (string) the role name.
   @return (boolean) returns true iff the role was 
     created successfully.
   @note This function will display and log an error
     message on failure.
 */
-function hockey_boss_create_role ($name) {
-  if (!user_role_load_by_name ($name)) {
-    if (!user_role_save ((object) array ('name' => $name))) {
-      $msg = "Error: an error occured while trying to create the $name role.";
+function hockey_boss_create_role ($role_name) {
+  if (!user_role_load_by_name ($role_name)) {
+    if (!user_role_save ((object) array ('name' => $role_name))) {
+      $msg = "Error: an error occured while trying to create the $role_name role.";
       drupal_set_message ($msg, 'error');
       watchdog (
         'hockey_boss',
@@ -638,17 +638,6 @@ function hockey_boss_create_role ($name) {
       );  
     }   
   }
-}
-
-/**
-  @brief Assigns the given permissions to the role
-    that has the given name.
-  @param $name (string) the role name.
-  @param $permissions (array) the permission names.
-*/
-function hockey_boss_grant_permissions ($name, $permissions) {
-  $role = user_role_load_by_name ($name);
-  user_role_grant_permissions ($role->rid, $permissions);
 }
 
 /**
@@ -670,19 +659,27 @@ function hockey_boss_roles () {
     them their default permissions.
 */
 function hockey_boss_create_roles () {
-  foreach (hockey_boss_roles () as $name => $permissions) {
-    // I. create the user role.
-    hockey_boss_create_role ($name);
-
-    // II. assign the default permissions.
-    hockey_boss_grant_permissions ($name, $permissions);
+  foreach (hockey_boss_roles () as $role_name => $permissions) {
+    hockey_boss_create_role ($role_name);
   }
 }
 
 /// Deletes the core user roles.
 function hockey_boss_delete_roles () {
-  foreach (array_keys (hockey_boss_roles ()) as $name) {
-    // I. delete the user role.
-    user_role_delete ($name);
+  foreach (array_keys (hockey_boss_roles ()) as $role_name) {
+    user_role_delete ($role_name);
+  }
+}
+
+// ----- VII. Permissions -----
+
+/**
+  @brief Grants the default permissions to the core
+    user roles.
+*/
+function hockey_boss_grant_permissions () {
+  foreach (hockey_boss_roles () as $role_name => $permissions) {
+    $role = user_role_load_by_name ($role_name);
+    user_role_grant_permissions ($role->rid, $permissions);
   }
 }
